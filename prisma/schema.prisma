@@ -1,0 +1,267 @@
+// 美容サロン向け 顧客データ管理・活用ツール — Prisma スキーマ
+// 正本: docs/data-model.md（エンティティ/フィールド/リレーション/インデックス）
+//
+// 設計メモ:
+//  - SQLite は Prisma の `enum` 型を未サポートのため、取りうる値が閉じている
+//    フィールドは String + @default(...) で表現し、許可値はコメントに明記する。
+//    （アプリ層で zod により許可値を検証する。data-model.md の Enum 記載に対応）
+//  - 通貨は最小単位（円）を Int で保持し小数誤差を避ける。
+//  - 日時は UTC 保存。表示時にサロンのタイムゾーンへ変換する。
+//  - 派生指標（daysSinceLastVisit, cycleOverdueRatio 等）は永続化せずサービス層で算出。
+//    avgVisitIntervalDays / nextPredictedVisitDate / visitCount / totalSales /
+//    rfmSegment 等は M6・ダッシュボード性能のためキャッシュ列として保持する。
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Customer（顧客カルテの中核）────────────────────────────────
+model Customer {
+  id       String    @id @default(cuid())
+  name     String // (PII) 氏名
+  nameKana String? // (PII) フリガナ。検索・並び替え用
+  birthday DateTime? // (PII) 生年月日。daysToBirthday 算出元
+  gender   String? // (PII) male / female / other / unknown
+  phone    String? // (PII) 電話番号。保存時暗号化（ciphertext を格納）
+  email    String? // (PII) メール。保存時暗号化（ciphertext を格納）
+
+  registeredAt DateTime @default(now()) // 顧客登録日
+  status       String   @default("new") // new / repeat / dormant（来店実績から自動更新）
+
+  preferredStaffId String?
+  preferredStaff   Staff?  @relation("PreferredStaff", fields: [preferredStaffId], references: [id])
+
+  // 連絡同意（FR-PRIV-01/02/06）。連絡・M6抽出の必須ゲート。既定 false。
+  consentToContact  Boolean   @default(false)
+  consentUpdatedAt  DateTime? // 同意状態の最終変更日時（FR-PRIV-06：撤回後の連絡停止を監査可能に）
+  consentObtainedAt DateTime? // 同意取得日（§9.3 同意管理）
+  consentChannel    String? // 同意取得の経路（§9.3）
+
+  // カルテ（自由記述/要配慮は PII）
+  hairType    String? // (PII: 要配慮に準ずる)
+  skinType    String? // (PII: 要配慮に準ずる)
+  allergies   String? // JSON配列文字列 (PII: 要配慮)。保存時暗号化推奨
+  preferences String? // (PII) 嗜好（自由記述）
+  notes       String? // (PII) カルテ備考（自由記述）
+
+  // 来店サイクル系キャッシュ列（派生指標：data-model §4。バッチ/確定時更新）
+  firstVisitDate         DateTime?
+  lastVisitDate          DateTime?
+  visitCount             Int       @default(0)
+  avgVisitIntervalDays   Float?
+  nextPredictedVisitDate DateTime?
+
+  // 売上系キャッシュ列
+  totalSales          Int     @default(0) // 累計売上（円）
+  lastSaleAmount      Int?
+  retailPurchaseCount Int     @default(0)
+  rfmSegment          String? // vip / loyal / stable / new / at_risk / lost
+
+  // イベント/エンゲージ
+  anniversaryDate DateTime? // 記念日（既定は firstVisitDate）
+  lastContactDate DateTime?
+  reviewGiven     Boolean   @default(false)
+  referralCount   Int       @default(0)
+
+  visits       Visit[]
+  sales        Sale[]
+  reservations Reservation[]
+  adviceLogs   AdviceLog[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // 論理削除（FR-PRIV-04）。物理削除は別途 API。
+
+  @@index([status])
+  @@index([lastVisitDate])
+  @@index([nextPredictedVisitDate]) // M6: 周期接近/超過の抽出
+  @@index([rfmSegment])
+  @@index([deletedAt])
+}
+
+// ── Visit（来店 / 施術履歴。1来店1レコード）────────────────────
+model Visit {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  date       DateTime // 来店日時。avgVisitIntervalDays 算出元
+  staffId    String?
+  staff      Staff?   @relation(fields: [staffId], references: [id])
+  menu       String? // 施術メニュー名（スナップショット）
+  serviceId  String?
+  service    Service? @relation(fields: [serviceId], references: [id])
+  products   String? // JSON配列文字列（当日提案/使用した店販等のメモ）
+  memo       String? // (PII) 施術メモ
+
+  // 来店 1 : 0..1 会計。FK は Visit 側（saleId @unique）が保持する。
+  saleId String? @unique
+  sale   Sale?   @relation(fields: [saleId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId, date]) // avgVisitIntervalDays 算出の主アクセスパス
+  @@index([date])
+}
+
+// ── Service（メニューマスタ）──────────────────────────────────
+model Service {
+  id               String   @id @default(cuid())
+  name             String
+  category         String? // cut / color / perm / spa 等
+  price            Int // 標準価格（円）
+  durationMin      Int? // 標準施術時間（分）。予約枠算出に利用
+  defaultCycleDays Int? // 推奨来店周期（日）。来店履歴が乏しい新規のM6予測フォールバック
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  visits       Visit[]
+  saleItems    SaleItem[]
+  reservations Reservation[]
+}
+
+// ── Sale（会計 / 伝票ヘッダ）──────────────────────────────────
+model Sale {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  date       DateTime // 会計日時
+
+  totalAmount    Int // 合計金額（円, 税込）= Σ SaleItem.amount − discountAmount
+  discountAmount Int     @default(0) // 伝票全体の割引額（会計レベル割引の正本：§E）
+  taxAmount      Int? // 消費税額（円）
+  paymentMethod  String? // cash / card / emoney / other
+
+  staffId String?
+  staff   Staff?  @relation(fields: [staffId], references: [id])
+
+  // 1会計に複数明細
+  items SaleItem[]
+  // 来店との 1:0..1 逆参照（FK は Visit.saleId 側）
+  visit Visit?
+
+  createdAt DateTime @default(now())
+
+  @@index([customerId, date]) // RFM / LTV / 客単価集計
+}
+
+// ── SaleItem（会計明細）──────────────────────────────────────
+model SaleItem {
+  id           String   @id @default(cuid())
+  saleId       String
+  sale         Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemType     String // service / product（retailPurchaseCount / retailRatio の判定軸）
+  serviceId    String?
+  service      Service? @relation(fields: [serviceId], references: [id])
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id])
+  name         String // 品目名スナップショット（マスタ削除耐性）
+  unitPrice    Int // 単価（円）
+  quantity     Int      @default(1)
+  lineDiscount Int      @default(0) // 明細単位の割引額（明細レベル割引の正本：§E）
+  amount       Int // 小計（円）= unitPrice * quantity − lineDiscount
+
+  @@index([saleId])
+  @@index([itemType])
+}
+
+// ── Product（店販商品マスタ）──────────────────────────────────
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  category  String? // shampoo / treatment / styling 等
+  price     Int // 標準価格（円）
+  sku       String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  saleItems SaleItem[]
+}
+
+// ── Reservation（予約）───────────────────────────────────────
+model Reservation {
+  id            String    @id @default(cuid())
+  customerId    String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  startAt       DateTime // 予約開始日時
+  endAt         DateTime? // 予約終了日時（Service.durationMin から補完可）
+  serviceId     String?
+  service       Service?  @relation(fields: [serviceId], references: [id])
+  staffId       String?
+  staff         Staff?    @relation(fields: [staffId], references: [id])
+  status        String    @default("booked") // booked / done / cancelled / noshow
+  source        String    @default("manual") // manual / m6_suggestion / import
+  googleEventId String? // M5: Googleカレンダー一方向同期の対応イベントID
+  memo          String? // (PII) 予約メモ
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([customerId, startAt]) // hasUpcomingReservation 判定
+  @@index([startAt, status])
+}
+
+// ── AdviceLog（アドバイス発火履歴：catalog / ai 両モード）──────
+model AdviceLog {
+  id              String    @id @default(cuid())
+  customerId      String? // 対象顧客（全体向けは null）
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  mode            String // catalog / ai
+  adviceKey       String? // カタログアドバイスID（catalog時）
+  triggerSnapshot String? // JSON：発火時に評価した派生指標のスナップショット（監査用）
+  message         String // 提示文。AI生成時は顧客文脈を含み得る (PII相当)
+  model           String? // AI生成時のモデル名（例: claude-*）
+  status          String    @default("shown") // shown / accepted / dismissed / acted（効果測定）
+  createdAt       DateTime  @default(now())
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// ── Staff（スタッフ / ログインユーザー。単一テナント・ロール最小）──
+model Staff {
+  id           String   @id @default(cuid())
+  name         String // (PII)
+  email        String?  @unique // (PII) ログイン用
+  passwordHash String? // bcrypt/argon2 ハッシュ（平文不可）
+  role         String   @default("staff") // owner / staff
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  preferredByCustomers Customer[]    @relation("PreferredStaff")
+  visits               Visit[]
+  sales                Sale[]
+  reservations         Reservation[]
+}
+
+// ── Settings（サロン情報 / AI設定 / 暗号化APIキー。単一行）──────
+model Settings {
+  id         String  @id @default("singleton")
+  salonName  String
+  salonPhone String? // (PII)
+  salonEmail String? // (PII)
+  timezone   String  @default("Asia/Tokyo")
+  currency   String  @default("JPY")
+
+  // AI連携（既定はオフライン＝外部送信ゼロ）
+  aiMode              String  @default("offline") // offline / connected
+  aiProvider          String  @default("claude") // 将来差し替え可
+  aiModel             String? // 既定モデル名
+  encryptedApiKey     String? // BYO APIキー（AES-256-GCM 暗号化）。平文保存禁止
+  apiKeyIv            String? // 暗号化 IV/nonce
+  aiSharedFields      String? // JSON配列：AI送信を許可するフィールド集合（PII最小化）
+  anonymizeBeforeSend Boolean @default(true) // 送信前匿名化（既定ON）
+
+  // プライバシー / 運用設定（確定済み既定値を反映）
+  dataRetentionYears        Int @default(3) // 保持上限：最終来店からN年でアーカイブ候補（FR-PRIV-03）
+  sessionIdleTimeoutMinutes Int @default(60) // 無操作自動ログアウト（FR-M0-03）
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

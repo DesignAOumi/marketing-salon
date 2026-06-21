@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/salon/trigger-dsl.schema.json",
+  "title": "アドバイス トリガDSL（条件式）スキーマ",
+  "description": "連携なしモードのルール評価エンジンが解釈する条件式のAST。advice-catalog の各 item.triggerRule（人間可読な擬似式）に対応する機械評価可能な正本表現。文字列の triggerRule は表示用、本ASTが評価用の正準形とする。",
+  "type": "object",
+  "$ref": "#/$defs/condition",
+  "$defs": {
+    "field": {
+      "type": "string",
+      "description": "顧客データ／派生指標のフィールド名。許可集合のみ。",
+      "enum": [
+        "customerId", "name", "birthday", "gender", "phone", "email", "registeredAt",
+        "status", "preferredStaff", "consentToContact",
+        "hairType", "skinType", "allergies", "preferences", "notes",
+        "firstVisitDate", "lastVisitDate", "visitCount", "lastService", "daysSinceLastVisit",
+        "avgVisitIntervalDays", "nextPredictedVisitDate", "cycleOverdueRatio",
+        "hasUpcomingReservation", "nextReservationDate",
+        "totalSales", "avgSpend", "ltv", "lastSaleAmount", "retailPurchaseCount", "retailRatio",
+        "rfmRecency", "rfmFrequency", "rfmMonetary", "rfmSegment",
+        "daysToBirthday", "anniversaryDate", "daysToAnniversary",
+        "reviewGiven", "referralCount", "lastContactDate",
+        "currentMonth", "currentSeason"
+      ]
+    },
+    "comparison": {
+      "type": "object",
+      "description": "単一フィールドの比較。欠損(null)のフィールドは isTrue/== 等で false 評価（欠損安全）。exists/notExists で明示判定可。",
+      "properties": {
+        "field": { "$ref": "#/$defs/field" },
+        "op": {
+          "type": "string",
+          "enum": ["==", "!=", ">", ">=", "<", "<=", "in", "notIn", "between", "exists", "notExists", "isTrue", "isFalse", "withinDays", "overdueDays"]
+        },
+        "value": {
+          "description": "比較値。op に応じ number / string / boolean / 配列 / [min,max]。exists/notExists/isTrue/isFalse では省略可。withinDays/overdueDays は日付フィールドに対する日数(number)。",
+          "type": ["number", "string", "boolean", "array", "null"]
+        }
+      },
+      "required": ["field", "op"],
+      "additionalProperties": false
+    },
+    "condition": {
+      "description": "条件ノード。比較 or 論理結合(all=AND / any=OR / not=NOT)。",
+      "oneOf": [
+        { "$ref": "#/$defs/comparison" },
+        {
+          "type": "object",
+          "properties": {
+            "all": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } }
+          },
+          "required": ["all"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/condition" } }
+          },
+          "required": ["any"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not": { "$ref": "#/$defs/condition" }
+          },
+          "required": ["not"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "examples": [
+    {
+      "all": [
+        { "field": "hasUpcomingReservation", "op": "isFalse" },
+        { "field": "cycleOverdueRatio", "op": ">=", "value": 1.2 },
+        { "field": "status", "op": "!=", "value": "dormant" }
+      ]
+    },
+    {
+      "all": [
+        { "field": "consentToContact", "op": "isTrue" },
+        { "field": "daysSinceLastVisit", "op": ">", "value": 120 },
+        { "any": [
+          { "field": "retailRatio", "op": "<", "value": 0.1 },
+          { "field": "visitCount", "op": "<", "value": 3 }
+        ] }
+      ]
+    },
+    {
+      "all": [
+        { "field": "rfmSegment", "op": "in", "value": ["VIP", "loyal"] },
+        { "field": "nextPredictedVisitDate", "op": "withinDays", "value": 7 }
+      ]
+    }
+  ]
+}

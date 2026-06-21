@@ -1,0 +1,20 @@
+# ビルドコンテキストから除外（イメージ肥大化・秘密混入の防止）
+node_modules
+.next
+.git
+.gitignore
+var
+backups
+exports
+*.db
+*.db-journal
+*.sqlite
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.DS_Store
+HANDOFF.md
+docs
+*.md
+!README.md

@@ -1,0 +1,55 @@
+# ──────────────────────────────────────────────────────────────
+#  プライバシー最優先：顧客データ・DB実体・鍵・秘密情報を絶対にコミットしない
+#  （要件定義書 §9.1 / Phase 0 DoD：リポジトリにデータ・DB・鍵が含まれないこと）
+# ──────────────────────────────────────────────────────────────
+
+# --- 秘密情報 / 環境変数（.env.example のみ許可）---
+.env
+.env.*
+!.env.example
+
+# --- SQLite DB 実体・ジャーナル（顧客データの本体）---
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+prisma/*.db
+prisma/*.db-journal
+prisma/dev.db*
+# Docker 実行時の永続ボリューム（salon.db / バックアップ / エクスポート / アップロード）
+# ※ git は行末インラインコメントを無視するためコメントは必ず独立行に置く
+/var/
+/data/*.db
+/data/*.sqlite
+
+# --- バックアップ / エクスポート（顧客データを含み得る）---
+/backups/
+/exports/
+*.bak
+*.dump
+
+# --- 鍵素材 ---
+*.pem
+*.key
+*.p12
+
+# --- ビルド成果物 / 依存 ---
+node_modules/
+/.next/
+/out/
+/build/
+next-env.d.ts
+*.tsbuildinfo
+
+# --- ログ / OS / エディタ ---
+*.log
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/
+coverage/
+
+# --- 内部メモ（OSS公開リポジトリには含めない）---
+HANDOFF.md

@@ -1,0 +1,44 @@
+# 美容サロン顧客管理ツール — セルフホスト用 docker compose
+# 使い方:
+#   1) cp .env.example .env  し、AUTH_SECRET / ENCRYPTION_KEY 等を設定
+#   2) docker compose up -d --build
+#   3) ブラウザで http://localhost:3000 （初回は .env の ADMIN_* でログイン）
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: salon-customer-tool:local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # SQLite は永続ボリューム ./var に配置（顧客データの本体。.gitignore 済み）。
+      # env_file の値より environment が優先される。
+      DATABASE_URL: "file:/app/var/salon.db"
+      NODE_ENV: "production"
+    volumes:
+      # SQLite DB / バックアップを named volume で永続化。
+      # named volume はマウント時にイメージ側 /app/var の所有権（非root nextjs）を
+      # 引き継ぐため、Linux でも権限調整なしで書き込める（＝ゼロ設定で初回起動が通る）。
+      # バックアップ:  docker compose cp app:/app/var/salon.db ./salon-backup.db
+      # ホスト上のファイルとして直接扱いたい場合は、上記を `- ./var:/app/var` の
+      # バインドマウントに変更可（macOS は即可。Linux は `sudo chown -R 1001:1001 var` が必要）。
+      - salon-var:/app/var
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  salon-var:
+    # 顧客データ本体（salon.db）の永続ボリューム。リポジトリには一切含まれない。
+
