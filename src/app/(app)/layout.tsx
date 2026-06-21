@@ -10,6 +10,7 @@ const NAV = [
   { href: "/reservations", label: "予約・来店サイクル (M3)", enabled: false },
   { href: "/analytics", label: "分析ダッシュボード (M4)", enabled: false },
   { href: "/suggestions", label: "再来店提案 (M6)", enabled: false },
+  { href: "/data", label: "データ入出力", enabled: true },
   { href: "/settings", label: "設定 (M0)", enabled: false },
 ];
 

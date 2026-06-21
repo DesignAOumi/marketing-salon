@@ -34,9 +34,10 @@ export const customerInputSchema = z.object({
   skinType: optionalStr,
   // カンマ/改行区切りの入力を配列へ。空要素は除去。
   allergies: z.preprocess((v) => {
+    if (Array.isArray(v)) return v;
     if (typeof v !== "string") return v;
     const arr = v
-      .split(/[,\n、]/)
+      .split(/[,;\n、]/)
       .map((s) => s.trim())
       .filter(Boolean);
     return arr.length ? arr : undefined;
