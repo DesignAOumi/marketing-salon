@@ -100,6 +100,18 @@ export const saleInputSchema = z.object({
 
 export type SaleInput = z.infer<typeof saleInputSchema>;
 
+// 予約入力スキーマ（M3 / FR-M3-01）。startAt は datetime-local（YYYY-MM-DDTHH:mm）。
+export const reservationInputSchema = z.object({
+  customerId: z.string().trim().min(1, "顧客を選択してください"),
+  startAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, "日時を入力してください"),
+  staffId: optionalStr,
+  memo: optionalStr,
+});
+
+export type ReservationFormInput = z.infer<typeof reservationInputSchema>;
+
 /** FormData → プレーンオブジェクト（チェックボックス未送信は false 既定で補完）。 */
 export function formToObject(formData: FormData): Record<string, unknown> {
   const obj: Record<string, unknown> = {};

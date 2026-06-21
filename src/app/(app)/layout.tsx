@@ -7,7 +7,7 @@ const NAV = [
   { href: "/dashboard", label: "ダッシュボード", enabled: true },
   { href: "/customers", label: "顧客カルテ (M1)", enabled: true },
   { href: "/sales", label: "売上・購買 (M2)", enabled: false },
-  { href: "/reservations", label: "予約・来店サイクル (M3)", enabled: false },
+  { href: "/reservations", label: "予約・来店サイクル (M3)", enabled: true },
   { href: "/analytics", label: "分析ダッシュボード (M4)", enabled: false },
   { href: "/suggestions", label: "再来店提案 (M6)", enabled: false },
   { href: "/data", label: "データ入出力", enabled: true },

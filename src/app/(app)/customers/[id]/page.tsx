@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { getCustomerById, listActiveStaff } from "@/lib/customers";
 import { getCustomerSalesMetrics, listSalesByCustomer } from "@/lib/sales";
+import { customerUpcoming } from "@/lib/reservations";
 import { deriveStatus } from "@/lib/customer-status";
+import { cycleOverdueRatio, cycleState, CYCLE_STATE_LABEL } from "@/lib/cycle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AddVisitForm } from "@/components/AddVisitForm";
 import { SaleForm } from "@/components/SaleForm";
@@ -31,15 +33,18 @@ export default async function CustomerDetailPage({
 }) {
   await requireAuth();
   const { id } = await params;
-  const [customer, staff, metrics, sales] = await Promise.all([
+  const [customer, staff, metrics, sales, upcoming] = await Promise.all([
     getCustomerById(id),
     listActiveStaff(),
     getCustomerSalesMetrics(id),
     listSalesByCustomer(id),
+    customerUpcoming(id),
   ]);
   if (!customer) notFound();
 
   const s = deriveStatus(customer);
+  const ratio = cycleOverdueRatio(s.daysSinceLastVisit, customer.avgVisitIntervalDays);
+  const cstate = cycleState(ratio, s.daysSinceLastVisit);
   const today = new Date().toISOString().slice(0, 10);
   const boundAddVisit = addVisitAction.bind(null, id);
   const boundDelete = deleteCustomerAction.bind(null, id);
@@ -130,6 +135,39 @@ export default async function CustomerDetailPage({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <section className="lg:col-span-1">
+          <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold text-zinc-800">来店サイクル</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">平均来店間隔</dt>
+                <dd className="text-zinc-800">
+                  {customer.avgVisitIntervalDays
+                    ? `${Math.round(customer.avgVisitIntervalDays)} 日`
+                    : "算出不可"}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">次回予測日</dt>
+                <dd className="text-zinc-800">{formatDate(customer.nextPredictedVisitDate)}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className="text-zinc-500">サイクル状態</dt>
+                <dd>
+                  <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
+                    {CYCLE_STATE_LABEL[cstate]}
+                  </span>
+                </dd>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-zinc-100 pt-2">
+                <dt className="text-zinc-500">先の予約</dt>
+                <dd className="text-zinc-800">
+                  {upcoming.hasUpcomingReservation
+                    ? formatDate(upcoming.nextReservationDate)
+                    : "なし"}
+                </dd>
+              </div>
+            </dl>
+          </div>
           <div className="rounded-xl border border-zinc-200 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-zinc-800">基本情報</h2>
             <dl className="space-y-2 text-sm">

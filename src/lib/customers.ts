@@ -8,6 +8,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { computePersistentStatus } from "@/lib/customer-status";
+import { computeCycle } from "@/lib/cycle";
 import type { CustomerInput } from "@/lib/validation";
 
 function encField(v: string | undefined | null): string | null {
@@ -165,6 +166,15 @@ export async function listActiveStaff() {
   });
 }
 
+/** 予約フォーム等で使う顧客の選択肢（全件・軽量）。 */
+export async function listCustomerOptions() {
+  return prisma.customer.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ nameKana: "asc" }, { name: "asc" }],
+    select: { id: true, name: true },
+  });
+}
+
 /** 来店（施術履歴）を追加し、顧客のキャッシュ列（来店回数・最終来店日等）を更新する（FR-M1-07/AC-M1-3）。 */
 export async function addVisit(
   customerId: string,
@@ -181,19 +191,31 @@ export async function addVisit(
         memo: input.memo ?? null,
       },
     });
-    const agg = await tx.visit.aggregate({
+    const visits = await tx.visit.findMany({
       where: { customerId },
-      _count: { _all: true },
-      _min: { date: true },
-      _max: { date: true },
+      select: { date: true },
+      orderBy: { date: "asc" },
     });
-    const visitCount = agg._count._all;
-    const lastVisitDate = agg._max.date ?? null;
-    const firstVisitDate = agg._min.date ?? null;
-    const status = computePersistentStatus({ visitCount, lastVisitDate });
+    const dates = visits.map((v) => v.date);
+    const visitCount = dates.length;
+    const lastVisitDate = dates[visitCount - 1] ?? null;
+    const firstVisitDate = dates[0] ?? null;
+    const cyc = computeCycle(dates, new Date());
+    const status = computePersistentStatus({
+      visitCount,
+      lastVisitDate,
+      avgVisitIntervalDays: cyc.avgVisitIntervalDays,
+    });
     return tx.customer.update({
       where: { id: customerId },
-      data: { visitCount, lastVisitDate, firstVisitDate, status },
+      data: {
+        visitCount,
+        lastVisitDate,
+        firstVisitDate,
+        avgVisitIntervalDays: cyc.avgVisitIntervalDays,
+        nextPredictedVisitDate: cyc.nextPredictedVisitDate,
+        status,
+      },
     });
   });
 }
