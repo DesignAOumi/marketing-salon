@@ -4,11 +4,13 @@ import { requireAuth } from "@/lib/auth";
 import { getCustomerById, listActiveStaff } from "@/lib/customers";
 import { getCustomerSalesMetrics, listSalesByCustomer } from "@/lib/sales";
 import { customerUpcoming } from "@/lib/reservations";
+import { getAdviceForCustomer } from "@/lib/advice";
 import { deriveStatus } from "@/lib/customer-status";
 import { cycleOverdueRatio, cycleState, CYCLE_STATE_LABEL } from "@/lib/cycle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AddVisitForm } from "@/components/AddVisitForm";
 import { SaleForm } from "@/components/SaleForm";
+import { CopyButton } from "@/components/CopyButton";
 import { formatDate, formatYen } from "@/lib/format";
 import {
   addVisitAction,
@@ -33,12 +35,13 @@ export default async function CustomerDetailPage({
 }) {
   await requireAuth();
   const { id } = await params;
-  const [customer, staff, metrics, sales, upcoming] = await Promise.all([
+  const [customer, staff, metrics, sales, upcoming, advice] = await Promise.all([
     getCustomerById(id),
     listActiveStaff(),
     getCustomerSalesMetrics(id),
     listSalesByCustomer(id),
     customerUpcoming(id),
+    getAdviceForCustomer(id),
   ]);
   if (!customer) notFound();
 
@@ -200,6 +203,46 @@ export default async function CustomerDetailPage({
         </section>
 
         <section className="lg:col-span-2">
+          <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-zinc-800">AIアドバイス（オフライン）</h2>
+              <span className="text-xs text-zinc-400">外部送信ゼロ・定型カタログ照合</span>
+            </div>
+            {advice.length === 0 ? (
+              <p className="py-4 text-center text-sm text-zinc-400">
+                現在、該当するアドバイスはありません。
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {advice.map((a) => (
+                  <li key={a.id} className="rounded-lg border border-zinc-100 p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] text-zinc-500">
+                        {a.id}
+                      </span>
+                      <span className="text-sm font-medium text-zinc-800">{a.title}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-zinc-600">{a.insight}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      <span className="font-medium">推奨アクション:</span> {a.recommendedAction}
+                    </p>
+                    {a.customerMessage ? (
+                      <div className="mt-2 rounded bg-zinc-50 p-2">
+                        <p className="whitespace-pre-wrap text-xs text-zinc-700">{a.customerMessage}</p>
+                        <div className="mt-1">
+                          <CopyButton text={a.customerMessage} />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-xs text-amber-600">
+                        連絡同意がないため顧客向け文面は生成されません。
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="rounded-xl border border-zinc-200 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-zinc-800">施術履歴（来店）</h2>
             <div className="mb-4 rounded-lg bg-zinc-50 p-3">

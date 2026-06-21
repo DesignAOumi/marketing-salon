@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getCurrentMonthSales } from "@/lib/sales";
+import { getM6Targets } from "@/lib/advice";
 import { formatYen } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -14,13 +15,19 @@ export default async function DashboardPage() {
   let customerCount: number | null = null;
   let reservationCount: number | null = null;
   let monthSales: number | null = null;
+  let m6Count: number | null = null;
   let dbError: string | null = null;
   try {
-    [customerCount, reservationCount, monthSales] = await Promise.all([
+    const [cc, rc, ms, m6] = await Promise.all([
       prisma.customer.count({ where: { deletedAt: null } }),
       prisma.reservation.count(),
       getCurrentMonthSales(),
+      getM6Targets(),
     ]);
+    customerCount = cc;
+    reservationCount = rc;
+    monthSales = ms;
+    m6Count = m6.length;
   } catch (e) {
     dbError = e instanceof Error ? e.message : String(e);
   }
@@ -29,7 +36,7 @@ export default async function DashboardPage() {
     { label: "総顧客数", value: customerCount === null ? "—" : `${customerCount}`, hint: "M1 / M4" },
     { label: "当月売上", value: monthSales === null ? "—" : formatYen(monthSales), hint: "M2" },
     { label: "予約件数", value: reservationCount === null ? "—" : `${reservationCount}`, hint: "M3" },
-    { label: "本日の再来店提案", value: "—", hint: "M6（Phase 3）" },
+    { label: "本日の再来店提案", value: m6Count === null ? "—" : `${m6Count}`, hint: "M6" },
   ];
 
   return (
