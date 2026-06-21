@@ -103,8 +103,8 @@ export default async function CustomersPage({
         })}
       </nav>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
             <tr>
               <th className="px-4 py-3 font-medium">氏名</th>

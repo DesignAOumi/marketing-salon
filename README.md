@@ -160,6 +160,8 @@ curl http://localhost:3000/api/health
 
 > 📦 顧客データは Docker の named volume `salon-var`（コンテナ内 `/app/var/salon.db`）にのみ保存され、リポジトリには一切含まれません。
 
+> ☁️ **PCを持たない人にもスマホから使ってもらいたい場合** は、クラウドに1サロン分をホストできます（モバイル対応済み）。手順は [docs/DEPLOY.md](docs/DEPLOY.md)（VPS+docker compose / Railway / Render / Fly.io / Postgres切替）。
+
 ### ローカル開発（contributor 向け）
 
 Docker を使わずに開発する場合（Node.js 20 以上が必要）:
