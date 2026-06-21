@@ -177,8 +177,11 @@ npm run dev                   # http://localhost:3000 で開発サーバ起動
 | `npm run build` | 本番ビルド |
 | `npm run typecheck` | 型チェック（`tsc --noEmit`） |
 | `npm run lint` | Lint |
+| `npm test` | 単体テスト（vitest・純粋ロジック） |
 | `npm run db:seed` | 初期データ再投入（冪等） |
 | `npm run check:no-data` | 顧客データ・鍵の混入検査（CI と同等） |
+
+> 🧪 **お試し用サンプルデータ**: 架空の顧客データ [`data/samples/customers.sample.csv`](data/samples/customers.sample.csv) を「データ入出力」画面からインポートすると、すぐに動作を確認できます（来店・売上は手入力で追加すると来店サイクルや再来店提案が動きます）。
 
 ---
 
@@ -285,7 +288,7 @@ docker compose start app
 
 ## ロードマップ / Roadmap
 
-> **現在の状況**: **Phase 4 進行中** — MVP（Phase 0〜3）に加え、設定画面（M0）・連携ありAI（Claude BYO）・ICSエクスポートを実装。残るは Googleカレンダー一方向同期（OAuth）。
+> **現在の状況**: **Phase 5（OSS公開整備）進行中** — MVP（Phase 0〜3）＋ 設定/連携ありAI/ICS（Phase 4）に加え、LICENSE(MIT)・CONTRIBUTING・SECURITY・プライバシー方針・サンプルデータ・テストスイート(vitest)＋CI を整備。残るは Googleカレンダー一方向同期（OAuth）と公開タグ付け。
 
 - [x] **Phase 0** 雛形・Docker・DBスキーマ・簡易認証の枠（単一テナント）
 - [x] **M1** 顧客カルテ（基本情報・施術履歴・検索・連絡先暗号化・アレルギー警告）
@@ -298,7 +301,9 @@ docker compose start app
 - [x] **M0 設定**（サロン情報・AIモード・モデル選択・APIキー暗号化保存・送信フィールド制御・接続テスト）
 - [x] AIアドバイス: 連携あり（Claude BYO・送信フィールド制御・氏名匿名化・連携なしフォールバック）
 - [x] **M5** ICS エクスポート（顧客名の有無を制御可能・GCal連携なしでも利用可）
+- [x] **Phase 5** OSS整備（LICENSE(MIT)・CONTRIBUTING・SECURITY・PRIVACY・サンプルデータ・vitest テスト・CI）
 - [ ] **M5** Googleカレンダー一方向同期（OAuth・要 Google 認証情報）
+- [ ] **Phase 5** スクリーンショット・v1.0 リリースタグ
 - [ ] **将来**: Googleカレンダー双方向同期
 - [ ] **将来**: 他AIプロバイダ対応
 - [ ] **将来**: PostgreSQL 正式対応 / マルチユーザー権限の拡張
@@ -320,28 +325,18 @@ docker compose start app
 
 ### 開発の流れ
 
-- バグ報告・機能提案は [Issues](../../issues) からお願いします。
-- 大きな変更を行う場合は、事前に Issue で相談いただけると助かります。
-- コーディング規約・テスト方針は `CONTRIBUTING.md`（準備中）を参照してください。
+- バグ報告・機能提案は [Issues](../../issues) からお願いします（テンプレートあり）。
+- 開発環境・テスト方針・PR の流れは [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+- 脆弱性の報告・セキュリティ設計は [SECURITY.md](SECURITY.md) を参照してください。
+- データの取り扱い・プライバシー方針は [docs/PRIVACY.md](docs/PRIVACY.md) にまとめています。
 
-> ⚠️ **顧客データ・`.env`・実データを含む変更は絶対にコミットしないでください。** PR には個人情報を含めないようご注意ください。
+> ⚠️ **顧客データ・`.env`・実データを含む変更は絶対にコミットしないでください。** `npm run check:no-data` で検査でき、CI でも自動チェックします。
 
 ---
 
 ## ライセンス / License
 
-> 📄 **ライセンスは検討中です（プレースホルダ）。**
-
-現時点では **MIT License を想定**していますが、確定ではありません。正式なライセンスは `LICENSE` ファイルにて確定・公開します。
-
-```
-（例）MIT License — 要検討
-
-Copyright (c) 2026 <Your Name / Organization>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-...
-```
+**MIT License** で公開しています。全文は [LICENSE](LICENSE) を参照してください。誰でも自由に利用・改変・再配布できます（無保証）。
 
 ---
 

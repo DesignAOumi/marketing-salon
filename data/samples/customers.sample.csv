@@ -1,0 +1,7 @@
+id,name,nameKana,gender,birthday,phone,email,hairType,skinType,allergies,preferences,notes,consentToContact
+,山田 太郎,ヤマダ タロウ,male,1985-04-12,090-1111-2222,taro@example.com,軟毛,普通肌,,短時間希望,初回カウンセリング重視,true
+,佐藤 花子,サトウ ハナコ,female,1990-08-03,090-3333-4444,hanako@example.com,硬毛,乾燥肌,ジアミン;ラテックス,明るめカラー,カラー前パッチテスト必須,true
+,鈴木 美咲,スズキ ミサキ,female,1998-12-20,,misaki@example.com,普通,敏感肌,パラフェニレンジアミン,ナチュラル志向,会話は控えめ希望,false
+,田中 健一,タナカ ケンイチ,male,1978-02-28,090-5555-6666,,直毛,脂性肌,,刈り上げスタイル,毎月来店の常連,true
+,高橋 由美,タカハシ ユミ,female,1982-06-15,090-7777-8888,yumi@example.com,くせ毛,普通肌,香料,ボリュームダウン希望,そろそろ来店周期,true
+,渡辺 翔,ワタナベ ショウ,male,1995-10-05,,sho@example.com,軟毛,普通肌,,アッシュ系カラー,SNS経由の新規,true
