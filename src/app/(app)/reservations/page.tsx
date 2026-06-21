@@ -76,9 +76,26 @@ export default async function ReservationsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">予約・来店サイクル</h1>
-        <p className="mt-1 text-sm text-zinc-500">今後の予約 {upcoming.length} 件</p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900">予約・来店サイクル</h1>
+          <p className="mt-1 text-sm text-zinc-500">今後の予約 {upcoming.length} 件</p>
+        </div>
+        <div className="flex gap-2">
+          <a
+            href="/api/export/ics"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100"
+          >
+            ICS出力
+          </a>
+          <a
+            href="/api/export/ics?pii=off"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100"
+            title="顧客名を含めずに出力（共有カレンダー向け）"
+          >
+            ICS出力（匿名）
+          </a>
+        </div>
       </header>
 
       <section className="mb-6 rounded-xl border border-zinc-200 bg-white p-5">

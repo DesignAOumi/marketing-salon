@@ -10,6 +10,7 @@ import {
   addVisit,
 } from "@/lib/customers";
 import { createSale, deleteSale } from "@/lib/sales";
+import { generateConnectedAdvice, type ConnectedAdvice } from "@/lib/anthropic-advice";
 import {
   customerInputSchema,
   visitInputSchema,
@@ -109,4 +110,23 @@ export async function deleteSaleAction(
   await deleteSale(customerId, saleId);
   revalidatePath(`/customers/${customerId}`);
   revalidatePath("/customers");
+}
+
+export type ConnectedState = { advice?: ConnectedAdvice; error?: string };
+
+/** 連携あり（Claude BYO）でアドバイスを個別生成。失敗時は連携なしへ誘導。 */
+export async function generateConnectedAdviceAction(
+  customerId: string,
+  _prev: ConnectedState,
+  _formData: FormData,
+): Promise<ConnectedState> {
+  await requireAuth();
+  const advice = await generateConnectedAdvice(customerId);
+  if (!advice) {
+    return {
+      error:
+        "AI生成に失敗したか条件未充足です（連携なしの定型アドバイスをご利用ください）。設定でAPIキー・連携あり・連絡同意をご確認ください。",
+    };
+  }
+  return { advice };
 }

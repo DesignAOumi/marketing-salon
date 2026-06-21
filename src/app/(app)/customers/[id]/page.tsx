@@ -5,18 +5,21 @@ import { getCustomerById, listActiveStaff } from "@/lib/customers";
 import { getCustomerSalesMetrics, listSalesByCustomer } from "@/lib/sales";
 import { customerUpcoming } from "@/lib/reservations";
 import { getAdviceForCustomer } from "@/lib/advice";
+import { getSettings } from "@/lib/settings";
 import { deriveStatus } from "@/lib/customer-status";
 import { cycleOverdueRatio, cycleState, CYCLE_STATE_LABEL } from "@/lib/cycle";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AddVisitForm } from "@/components/AddVisitForm";
 import { SaleForm } from "@/components/SaleForm";
 import { CopyButton } from "@/components/CopyButton";
+import { ConnectedAdvicePanel } from "@/components/ConnectedAdvicePanel";
 import { formatDate, formatYen } from "@/lib/format";
 import {
   addVisitAction,
   deleteCustomerAction,
   deleteSaleAction,
   createSaleAction,
+  generateConnectedAdviceAction,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -35,15 +38,19 @@ export default async function CustomerDetailPage({
 }) {
   await requireAuth();
   const { id } = await params;
-  const [customer, staff, metrics, sales, upcoming, advice] = await Promise.all([
+  const [customer, staff, metrics, sales, upcoming, advice, settings] = await Promise.all([
     getCustomerById(id),
     listActiveStaff(),
     getCustomerSalesMetrics(id),
     listSalesByCustomer(id),
     customerUpcoming(id),
     getAdviceForCustomer(id),
+    getSettings(),
   ]);
   if (!customer) notFound();
+
+  const showConnectedAi = settings.aiMode === "connected" && customer.consentToContact;
+  const boundConnectedAdvice = generateConnectedAdviceAction.bind(null, id);
 
   const s = deriveStatus(customer);
   const ratio = cycleOverdueRatio(s.daysSinceLastVisit, customer.avgVisitIntervalDays);
@@ -203,6 +210,7 @@ export default async function CustomerDetailPage({
         </section>
 
         <section className="lg:col-span-2">
+          {showConnectedAi ? <ConnectedAdvicePanel action={boundConnectedAdvice} /> : null}
           <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-zinc-800">AIアドバイス（オフライン）</h2>
