@@ -16,7 +16,9 @@
     "db:seed": "node prisma/seed.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check:no-data": "bash scripts/check-no-data.sh"
+    "check:no-data": "bash scripts/check-no-data.sh",
+    "setup:hooks": "git config core.hooksPath .githooks",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "prisma": {
     "seed": "node prisma/seed.cjs"

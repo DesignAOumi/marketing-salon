@@ -36,12 +36,25 @@ echo "$tracked" | grep -E '(^|/)(backups|exports)/' && note "バックアップ/
 # 5) 実行時ボリューム
 echo "$tracked" | grep -E '(^|/)var/' && note "実行時ボリューム var/ の中身がコミットされています" || true
 
-echo "== 秘密情報パターンの簡易スキャン（追跡ファイル本文） =="
-# Anthropic / Google のキー形状を検出（テンプレートのダミーは除外）
+echo "== 秘密情報・PC固有情報のスキャン（追跡ファイル本文） =="
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  if git grep -nE 'sk-ant-[a-zA-Z0-9]{20,}' -- . 2>/dev/null; then
-    note "Anthropic APIキーらしき文字列が含まれています"
-  fi
+  # 注: 検査スクリプト自身とフックは検出パターン文字列を含むため除外する。
+  scan() { # $1=正規表現  $2=メッセージ
+    local hits
+    hits=$(git grep -nIE "$1" -- . \
+      ':(exclude)package-lock.json' ':(exclude)*.lock' \
+      ':(exclude).githooks/*' ':(exclude)scripts/check-no-data.sh' 2>/dev/null | head -3 || true)
+    if [ -n "$hits" ]; then
+      note "$2"
+      echo "$hits" | sed 's/^/      /'
+    fi
+  }
+  scan 'sk-ant-[A-Za-z0-9_-]{20,}' 'Anthropic APIキーらしき文字列'
+  scan 'GOCSPX-[A-Za-z0-9_-]{10,}' 'Google OAuth クライアントシークレットらしき文字列'
+  scan 'AKIA[0-9A-Z]{16}' 'AWS アクセスキーらしき文字列'
+  scan 'BEGIN [A-Z ]*PRIVATE KEY' '秘密鍵(PEM)らしき文字列'
+  scan '/(Users|home)/[A-Za-z0-9._-]+/' 'PC固有の絶対パス（ホームディレクトリ）'
+  scan 'C:\\Users\\[A-Za-z]' 'PC固有の絶対パス（Windows）'
 fi
 
 if [ "$fail" -eq 0 ]; then

@@ -1,0 +1,46 @@
+#!/bin/sh
+# ──────────────────────────────────────────────────────────────
+#  コミット前ガード：秘密情報・PC固有情報・顧客データの混入をブロック。
+#  有効化: git config core.hooksPath .githooks（npm install で自動設定）
+#  誤検知で意図的に通す場合のみ: git commit --no-verify
+# ──────────────────────────────────────────────────────────────
+fail=0
+note() { echo "  ✗ $1" >&2; fail=1; }
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+# 1) 禁止ファイル（ファイル名・パスで判定）
+for f in $staged; do
+  case "$f" in
+    .env.example) : ;;
+    .env|.env.*) note "秘密ファイル: $f" ;;
+    *.db|*.sqlite|*.sqlite3|*.db-journal|*.db-wal|*.db-shm) note "DB実体: $f" ;;
+    *.pem|*.key|*.p12|*.pfx) note "鍵素材: $f" ;;
+  esac
+  case "$f" in
+    var/*|backups/*|exports/*) note "実行時/出力データ: $f" ;;
+  esac
+done
+
+# 2) 本文スキャン（秘密情報・PC固有の絶対パス）
+pat='sk-ant-[A-Za-z0-9_-]{20,}|GOCSPX-[A-Za-z0-9_-]{10,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|/Users/[A-Za-z0-9._-]+/|/home/[A-Za-z0-9._-]+/|C:\\Users\\[A-Za-z]'
+for f in $staged; do
+  case "$f" in
+    package-lock.json|*.lock|*.png|*.jpg|*.jpeg|*.gif|*.webp|*.ico|*.pdf|*.woff*|*.ttf) continue ;;
+    .githooks/*|scripts/check-no-data.sh) continue ;; # 検出パターン自身を含むため除外
+  esac
+  hits=$(git show ":$f" 2>/dev/null | grep -nIE "$pat" | head -3)
+  if [ -n "$hits" ]; then
+    note "秘密情報/PC固有パスの疑い: $f"
+    echo "$hits" | sed 's/^/      /' >&2
+  fi
+done
+
+if [ "$fail" -ne 0 ]; then
+  echo "" >&2
+  echo "コミットを中止しました。上記を除去してください。" >&2
+  echo "（誤検知の場合のみ: git commit --no-verify）" >&2
+  exit 1
+fi
+exit 0

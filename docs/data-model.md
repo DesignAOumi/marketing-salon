@@ -1,5 +1,3 @@
-補助文書を `/Users/ikedayuichi/Dropbox/AI事業/app/marketing-tool/salon/docs/data-model.md` に執筆した。本文Markdownは以下のとおり。
-
 # データモデル定義
 
 本書は、美容サロン向け顧客データ管理・活用ツール（OSS / セルフホスト）のデータモデルを定義する補助文書である。要件定義書（プロダクト前提）に紐づき、Prisma + SQLite を既定とした実装の土台となる。
