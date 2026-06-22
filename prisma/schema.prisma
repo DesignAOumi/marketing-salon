@@ -261,6 +261,7 @@ model Settings {
   currency   String  @default("JPY")
 
   // AI連携（既定はオフライン＝外部送信ゼロ）
+  aiEnabled           Boolean @default(true) // AI機能のON/OFF。OFFでAIアドバイスを非表示
   aiMode              String  @default("offline") // offline / connected
   aiProvider          String  @default("claude") // 将来差し替え可
   aiModel             String? // 既定モデル名

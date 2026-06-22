@@ -5,6 +5,7 @@ import { SetupChecklist } from "@/components/SetupChecklist";
 import {
   saveSalonInfoAction,
   saveAiSettingsAction,
+  savePrivacyAction,
   saveThemeAction,
   saveApiKeyAction,
   clearApiKeyAction,
@@ -36,6 +37,7 @@ export default async function SettingsPage() {
         fields={SHAREABLE_FIELDS.map((f) => ({ key: f.key, label: f.label, pii: f.pii }))}
         saveSalonInfo={saveSalonInfoAction}
         saveAiSettings={saveAiSettingsAction}
+        savePrivacy={savePrivacyAction}
         saveTheme={saveThemeAction}
         saveApiKey={saveApiKeyAction}
         clearApiKey={clearApiKeyAction}

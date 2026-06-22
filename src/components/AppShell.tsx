@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { themeBg } from "@/lib/theme";
+import { themeBg, themeHeader } from "@/lib/theme";
 
 type Session = { name: string; email: string | null; role: string };
 
@@ -37,9 +37,9 @@ export function AppShell({
 
   const SidebarContent = (
     <div className="flex h-full flex-col">
-      <div className="border-b border-zinc-200 px-5 py-4">
+      <div className={`border-b border-black/10 px-5 py-4 ${themeHeader(theme)}`}>
         <p className="text-sm font-bold leading-snug text-zinc-900">{appTitle}</p>
-        <p className="text-xs text-zinc-400">セルフホスト / v0.1</p>
+        <p className="text-xs text-zinc-500">セルフホスト / v0.1</p>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {NAV.map((item) => {
@@ -109,7 +109,7 @@ export function AppShell({
       {/* 本体 */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* モバイル: 上部バー（ハンバーガー） */}
-        <header className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-3 lg:hidden">
+        <header className={`flex items-center gap-3 border-b border-black/10 px-4 py-3 lg:hidden ${themeHeader(theme)}`}>
           <button
             type="button"
             onClick={() => setOpen(true)}

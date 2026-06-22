@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import {
   updateSalonInfo,
-  updateAiSettings,
+  updateAiConnection,
+  updatePrivacy,
   updateTheme,
   setApiKey,
   clearApiKey,
@@ -58,8 +59,20 @@ export async function saveAiSettingsAction(
 ): Promise<SettingsState> {
   const err = await ensureOwner();
   if (err) return { error: err };
+  const aiEnabled = formData.get("aiEnabled") === "on";
   const aiMode = formData.get("aiMode") === "connected" ? "connected" : "offline";
   const aiModel = String(formData.get("aiModel") ?? "claude-opus-4-8").trim() || "claude-opus-4-8";
+  await updateAiConnection({ aiEnabled, aiMode, aiModel });
+  revalidatePath("/settings");
+  return { ok: "AI連携設定を保存しました。" };
+}
+
+export async function savePrivacyAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const err = await ensureOwner();
+  if (err) return { error: err };
   const anonymizeBeforeSend = formData.get("anonymizeBeforeSend") === "on";
   const aiSharedFields = SHAREABLE_FIELDS.map((f) => f.key).filter(
     (k) => formData.get(`field_${k}`) === "on",
@@ -69,16 +82,9 @@ export async function saveAiSettingsAction(
     5,
     Math.min(1440, Number(formData.get("sessionIdleTimeoutMinutes")) || 60),
   );
-  await updateAiSettings({
-    aiMode,
-    aiModel,
-    anonymizeBeforeSend,
-    aiSharedFields,
-    dataRetentionYears,
-    sessionIdleTimeoutMinutes,
-  });
+  await updatePrivacy({ anonymizeBeforeSend, aiSharedFields, dataRetentionYears, sessionIdleTimeoutMinutes });
   revalidatePath("/settings");
-  return { ok: "AI連携・プライバシー設定を保存しました。" };
+  return { ok: "プライバシー設定を保存しました。" };
 }
 
 export async function saveApiKeyAction(

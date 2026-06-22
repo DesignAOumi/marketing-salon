@@ -41,6 +41,7 @@ export async function getSettingsView() {
     salonEmail: s.salonEmail,
     timezone: s.timezone,
     currency: s.currency,
+    aiEnabled: s.aiEnabled,
     aiMode: s.aiMode,
     aiModel: s.aiModel ?? "claude-opus-4-8",
     anonymizeBeforeSend: s.anonymizeBeforeSend,
@@ -55,6 +56,29 @@ export async function getSettingsView() {
 export async function updateTheme(themeColor: string) {
   await getSettings();
   return prisma.settings.update({ where: { id: "singleton" }, data: { themeColor } });
+}
+
+export async function updateAiConnection(data: { aiEnabled: boolean; aiMode: string; aiModel: string }) {
+  await getSettings();
+  return prisma.settings.update({ where: { id: "singleton" }, data });
+}
+
+export async function updatePrivacy(data: {
+  anonymizeBeforeSend: boolean;
+  aiSharedFields: string[];
+  dataRetentionYears: number;
+  sessionIdleTimeoutMinutes: number;
+}) {
+  await getSettings();
+  return prisma.settings.update({
+    where: { id: "singleton" },
+    data: {
+      anonymizeBeforeSend: data.anonymizeBeforeSend,
+      aiSharedFields: JSON.stringify(data.aiSharedFields),
+      dataRetentionYears: data.dataRetentionYears,
+      sessionIdleTimeoutMinutes: data.sessionIdleTimeoutMinutes,
+    },
+  });
 }
 
 export async function updateSalonInfo(data: {

@@ -11,6 +11,7 @@ type View = {
   salonEmail: string | null;
   timezone: string;
   currency: string;
+  aiEnabled: boolean;
   aiMode: string;
   aiModel: string;
   anonymizeBeforeSend: boolean;
@@ -24,6 +25,7 @@ type Field = { key: string; label: string; pii: boolean };
 
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500";
 const card = "rounded-xl border border-zinc-200 bg-white p-5";
+const btn = "rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60";
 const MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"];
 
 function Msg({ s }: { s: SettingsState }) {
@@ -32,23 +34,12 @@ function Msg({ s }: { s: SettingsState }) {
   return null;
 }
 
-// 折りたたみトグル（details/summary）。
-function Section({
-  title,
-  desc,
-  open,
-  children,
-}: {
-  title: string;
-  desc?: string;
-  open?: boolean;
-  children: React.ReactNode;
-}) {
+function Section({ title, desc, open, children }: { title: string; desc?: string; open?: boolean; children: React.ReactNode }) {
   return (
     <details className={card} open={open}>
       <summary className="flex cursor-pointer select-none items-center justify-between text-sm font-semibold text-zinc-800 [&::-webkit-details-marker]:hidden">
         <span>{title}</span>
-        <span className="text-zinc-400 transition-transform">▾</span>
+        <span className="text-zinc-400">▾</span>
       </summary>
       {desc ? <p className="mt-1 text-xs text-zinc-400">{desc}</p> : null}
       <div className="mt-4">{children}</div>
@@ -61,6 +52,7 @@ export function SettingsForm({
   fields,
   saveSalonInfo,
   saveAiSettings,
+  savePrivacy,
   saveTheme,
   saveApiKey,
   clearApiKey,
@@ -70,6 +62,7 @@ export function SettingsForm({
   fields: Field[];
   saveSalonInfo: Action;
   saveAiSettings: Action;
+  savePrivacy: Action;
   saveTheme: Action;
   saveApiKey: Action;
   clearApiKey: () => Promise<void>;
@@ -77,6 +70,7 @@ export function SettingsForm({
 }) {
   const [salonState, salonAction, salonPending] = useActionState<SettingsState, FormData>(saveSalonInfo, {});
   const [aiState, aiAction, aiPending] = useActionState<SettingsState, FormData>(saveAiSettings, {});
+  const [privacyState, privacyAction, privacyPending] = useActionState<SettingsState, FormData>(savePrivacy, {});
   const [themeState, themeAction, themePending] = useActionState<SettingsState, FormData>(saveTheme, {});
   const [keyState, keyAction, keyPending] = useActionState<SettingsState, FormData>(saveApiKey, {});
   const [testState, testAction, testPending] = useActionState<SettingsState, FormData>(testConnection, {});
@@ -109,9 +103,7 @@ export function SettingsForm({
             </label>
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <button disabled={salonPending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
-              {salonPending ? "保存中…" : "保存"}
-            </button>
+            <button disabled={salonPending} className={btn}>{salonPending ? "保存中…" : "保存"}</button>
             <Msg s={salonState} />
           </div>
           <p className="mt-2 text-xs text-zinc-400">※ サロン名はアプリのタイトルにも反映されます。</p>
@@ -119,7 +111,7 @@ export function SettingsForm({
       </Section>
 
       {/* 背景テーマカラー */}
-      <Section title="背景テーマカラー" desc="アプリの背景色を選べます。">
+      <Section title="背景テーマカラー" desc="アプリの背景・ヘッダー色を選べます。">
         <form action={themeAction}>
           <div className="flex flex-wrap gap-4">
             {THEMES.map((t) => (
@@ -131,44 +123,78 @@ export function SettingsForm({
             ))}
           </div>
           <div className="mt-4 flex items-center gap-3">
-            <button disabled={themePending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
-              {themePending ? "保存中…" : "保存"}
-            </button>
+            <button disabled={themePending} className={btn}>{themePending ? "保存中…" : "保存"}</button>
             <Msg s={themeState} />
           </div>
         </form>
       </Section>
 
-      {/* AI連携・プライバシー */}
-      <Section title="AI連携・プライバシー" desc="既定は「連携なし（オフライン・外部送信ゼロ）」。連携ありは明示オプトイン。">
+      {/* AI連携（モード/モデル/APIキー） */}
+      <Section title="AI連携" desc="AI機能のON/OFFと、連携あり時のClaude APIキー。">
         <form action={aiAction}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <input type="checkbox" name="aiEnabled" defaultChecked={view.aiEnabled} className="peer sr-only" />
+            <span className="relative h-6 w-11 rounded-full bg-zinc-300 transition-colors peer-checked:bg-emerald-500 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+            <span className="text-sm font-medium text-zinc-700">AI機能を使う（ON / OFF）</span>
+          </label>
+          <p className="mt-1 text-xs text-zinc-400">OFFにすると顧客カルテのAIアドバイスを表示しません。</p>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-zinc-700">AIモード</span>
               <select name="aiMode" defaultValue={view.aiMode} className={input}>
-                <option value="offline">連携なし（オフライン）</option>
+                <option value="offline">連携なし（オフライン・外部送信ゼロ）</option>
                 <option value="connected">連携あり（Claude BYO）</option>
               </select>
             </label>
             <label className="flex flex-col gap-1 text-sm">
               <span className="font-medium text-zinc-700">モデル</span>
               <select name="aiModel" defaultValue={view.aiModel} className={input}>
-                {MODELS.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
+                {MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-zinc-700">データ保持年数</span>
-              <input type="number" name="dataRetentionYears" min={1} max={20} defaultValue={view.dataRetentionYears} className={input} />
-            </label>
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="font-medium text-zinc-700">無操作ログアウト（分）</span>
-              <input type="number" name="sessionIdleTimeoutMinutes" min={5} max={1440} defaultValue={view.sessionIdleTimeoutMinutes} className={input} />
-            </label>
           </div>
+          <div className="mt-4 flex items-center gap-3">
+            <button disabled={aiPending} className={btn}>{aiPending ? "保存中…" : "保存"}</button>
+            <Msg s={aiState} />
+          </div>
+        </form>
 
-          <label className="mt-4 flex items-center gap-2 text-sm">
+        <div className="mt-5 border-t border-zinc-100 pt-4">
+          <p className="mb-3 text-xs text-zinc-500">
+            Claude APIキー（BYO）— 保存時に AES-256-GCM で暗号化。状態:{" "}
+            {view.hasApiKey ? <span className="text-emerald-600">登録済み</span> : <span className="text-zinc-500">未登録</span>}
+          </p>
+          <form action={keyAction} className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-1 flex-col gap-1 text-sm">
+              <span className="font-medium text-zinc-700">APIキー</span>
+              <input name="apiKey" type="password" placeholder="sk-ant-..." className={`${input} min-w-64`} />
+            </label>
+            <button disabled={keyPending} className={btn}>{keyPending ? "保存中…" : "保存"}</button>
+          </form>
+          <div className="mt-3 flex items-center gap-3">
+            <form action={testAction}>
+              <button disabled={testPending} className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-60">
+                {testPending ? "テスト中…" : "接続テスト"}
+              </button>
+            </form>
+            {view.hasApiKey ? (
+              <form action={clearApiKey}>
+                <button className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50">キーを削除</button>
+              </form>
+            ) : null}
+          </div>
+          <div className="mt-2 space-y-1">
+            <Msg s={keyState} />
+            <Msg s={testState} />
+          </div>
+        </div>
+      </Section>
+
+      {/* プライバシー（単独） */}
+      <Section title="プライバシー" desc="AI送信の匿名化・送信フィールド・データ保持・自動ログアウト。">
+        <form action={privacyAction}>
+          <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="anonymizeBeforeSend" defaultChecked={view.anonymizeBeforeSend} className="h-4 w-4" />
             <span className="text-zinc-700">送信前に氏名を匿名化（既定ON・推奨）</span>
           </label>
@@ -187,45 +213,21 @@ export function SettingsForm({
             </div>
           </fieldset>
 
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-zinc-700">データ保持年数</span>
+              <input type="number" name="dataRetentionYears" min={1} max={20} defaultValue={view.dataRetentionYears} className={input} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="font-medium text-zinc-700">無操作ログアウト（分）</span>
+              <input type="number" name="sessionIdleTimeoutMinutes" min={5} max={1440} defaultValue={view.sessionIdleTimeoutMinutes} className={input} />
+            </label>
+          </div>
           <div className="mt-4 flex items-center gap-3">
-            <button disabled={aiPending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
-              {aiPending ? "保存中…" : "保存"}
-            </button>
-            <Msg s={aiState} />
+            <button disabled={privacyPending} className={btn}>{privacyPending ? "保存中…" : "保存"}</button>
+            <Msg s={privacyState} />
           </div>
         </form>
-      </Section>
-
-      {/* APIキー */}
-      <Section title="Claude APIキー（BYO）" desc="保存時に AES-256-GCM で暗号化されます。">
-        <p className="mb-3 text-xs text-zinc-400">
-          状態: {view.hasApiKey ? <span className="text-emerald-600">登録済み</span> : <span className="text-zinc-500">未登録</span>}
-        </p>
-        <form action={keyAction} className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-1 flex-col gap-1 text-sm">
-            <span className="font-medium text-zinc-700">APIキー</span>
-            <input name="apiKey" type="password" placeholder="sk-ant-..." className={`${input} min-w-64`} />
-          </label>
-          <button disabled={keyPending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
-            {keyPending ? "保存中…" : "保存"}
-          </button>
-        </form>
-        <div className="mt-3 flex items-center gap-3">
-          <form action={testAction}>
-            <button disabled={testPending} className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-60">
-              {testPending ? "テスト中…" : "接続テスト"}
-            </button>
-          </form>
-          {view.hasApiKey ? (
-            <form action={clearApiKey}>
-              <button className="rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50">キーを削除</button>
-            </form>
-          ) : null}
-        </div>
-        <div className="mt-2 space-y-1">
-          <Msg s={keyState} />
-          <Msg s={testState} />
-        </div>
       </Section>
     </div>
   );
