@@ -9,13 +9,13 @@ type Session = { name: string; email: string | null; role: string };
 // 将来フェーズで各画面を追加する（screens.md の画面一覧）。
 const NAV = [
   { href: "/dashboard", label: "ダッシュボード", enabled: true },
-  { href: "/customers", label: "顧客カルテ (M1)", enabled: true },
-  { href: "/sales", label: "売上・購買 (M2)", enabled: false },
-  { href: "/reservations", label: "予約・来店サイクル (M3)", enabled: true },
-  { href: "/analytics", label: "分析ダッシュボード (M4)", enabled: true },
-  { href: "/suggestions", label: "再来店提案 (M6)", enabled: true },
+  { href: "/customers", label: "顧客カルテ", enabled: true },
+  { href: "/sales", label: "売上・購買", enabled: true },
+  { href: "/reservations", label: "予約・来店サイクル", enabled: true },
+  { href: "/analytics", label: "分析ダッシュボード", enabled: true },
+  { href: "/suggestions", label: "再来店提案", enabled: true },
   { href: "/data", label: "データ入出力", enabled: true },
-  { href: "/settings", label: "設定 (M0)", enabled: true },
+  { href: "/settings", label: "設定", enabled: true },
 ];
 
 export function AppShell({

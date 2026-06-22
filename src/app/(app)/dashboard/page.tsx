@@ -3,11 +3,10 @@ import { getSession } from "@/lib/auth";
 import { getCurrentMonthSales } from "@/lib/sales";
 import { getM6Targets } from "@/lib/advice";
 import { formatYen } from "@/lib/format";
-import { SetupChecklist } from "@/components/SetupChecklist";
 
 export const dynamic = "force-dynamic";
 
-// サロンの状況サマリ(KPI)と、導入セットアップの進捗(自動判定)を表示する。
+// サロンの状況サマリ(KPI)を表示する。導入チェックリストは設定画面へ移動。
 export default async function DashboardPage() {
   const session = await getSession();
 
@@ -69,7 +68,6 @@ export default async function DashboardPage() {
         ))}
       </section>
 
-      <div className="mt-8">{!dbError ? <SetupChecklist /> : null}</div>
     </div>
   );
 }

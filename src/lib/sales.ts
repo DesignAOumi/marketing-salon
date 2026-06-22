@@ -113,3 +113,16 @@ export async function getCurrentMonthSales(now: Date = new Date()) {
   });
   return agg._sum.totalAmount ?? 0;
 }
+
+/** 全顧客の会計を新しい順に一覧（売上・購買画面用）。 */
+export async function listRecentSales(limit = 200) {
+  return prisma.sale.findMany({
+    orderBy: { date: "desc" },
+    take: limit,
+    include: {
+      customer: { select: { id: true, name: true } },
+      staff: { select: { name: true } },
+      items: { select: { name: true, amount: true, itemType: true } },
+    },
+  });
+}

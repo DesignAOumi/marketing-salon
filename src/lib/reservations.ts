@@ -12,6 +12,7 @@ export type ReservationInput = {
   endAt?: Date | null;
   serviceId?: string | null;
   staffId?: string | null;
+  menusJson?: string | null;
   memo?: string | null;
 };
 
@@ -28,9 +29,21 @@ export async function createReservation(
       endAt: input.endAt ?? null,
       serviceId: input.serviceId || null,
       staffId: input.staffId || null,
+      menusJson: input.menusJson ?? null,
       memo: input.memo ?? null,
       status: "booked",
       source,
+    },
+  });
+}
+
+/** 来店確認（売上化）で使う1件取得。 */
+export async function getReservation(id: string) {
+  return prisma.reservation.findUnique({
+    where: { id },
+    include: {
+      customer: { select: { id: true, name: true } },
+      staff: { select: { id: true, name: true } },
     },
   });
 }

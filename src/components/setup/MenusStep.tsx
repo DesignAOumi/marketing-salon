@@ -24,7 +24,6 @@ type Svc = {
 type Cat = { id: string; name: string };
 
 const input = "rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-zinc-500";
-const yen = (n: number) => "¥" + n.toLocaleString("ja-JP");
 
 // ── 区分1件（インライン編集 + 削除）──────────────────────────
 function CategoryRow({ c }: { c: Cat }) {
@@ -68,14 +67,9 @@ function MenuRow({ s, categories }: { s: Svc; categories: Cat[] }) {
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="group flex shrink-0 items-center gap-2 text-sm text-zinc-700"
-          title="クリックして編集"
+          className="shrink-0 rounded border border-blue-200 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
         >
-          <span className="text-right">
-            {yen(s.price)}
-            {s.memberPrice != null ? <span className="ml-1 text-xs text-zinc-400">/ 会員 {yen(s.memberPrice)}</span> : null}
-          </span>
-          <span className="rounded border border-blue-200 px-1.5 py-0.5 text-xs text-blue-600 group-hover:bg-blue-50">✎ 編集</span>
+          ✎ 編集
         </button>
       </li>
     );
@@ -167,7 +161,7 @@ export function MenusStep({ services, categories }: { services: Svc[]; categorie
             {categories.length === 0 ? (
               <p className="text-sm text-zinc-400">まだありません。</p>
             ) : (
-              <ul className="divide-y divide-zinc-100">
+              <ul className="max-h-[20rem] divide-y divide-zinc-100 overflow-y-auto overscroll-contain pr-1">
                 {categories.map((c) => <CategoryRow key={c.id} c={c} />)}
               </ul>
             )}
@@ -206,11 +200,11 @@ export function MenusStep({ services, categories }: { services: Svc[]; categorie
           </form>
 
           <div className="rounded-lg border border-zinc-200 p-3">
-            <p className="mb-1 text-xs font-medium text-zinc-500">登録済みメニュー（{services.length}件）— 金額をクリックで編集</p>
+            <p className="mb-1 text-xs font-medium text-zinc-500">登録済みメニュー（{services.length}件）</p>
             {services.length === 0 ? (
               <p className="text-sm text-zinc-400">まだありません。</p>
             ) : (
-              <ul>
+              <ul className="max-h-[20rem] overflow-y-auto overscroll-contain pr-1">
                 {services.map((s) => <MenuRow key={s.id} s={s} categories={categories} />)}
               </ul>
             )}

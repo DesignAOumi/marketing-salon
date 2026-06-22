@@ -208,6 +208,7 @@ model Reservation {
   status        String    @default("booked") // booked / done / cancelled / noshow
   source        String    @default("manual") // manual / m6_suggestion / import
   googleEventId String? // M5: Googleカレンダー一方向同期の対応イベントID
+  menusJson     String? // 選択メニュー配列 JSON [{serviceId?, name, price}]（複数メニュー対応）
   memo          String? // (PII) 予約メモ
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

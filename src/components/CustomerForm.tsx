@@ -111,7 +111,11 @@ export function CustomerForm({
           <input name="email" type="email" defaultValue={d.email} className={inputCls} />
         </Field>
         <Field label="担当スタッフ" name="preferredStaffId" error={fe.preferredStaffId}>
-          <select name="preferredStaffId" defaultValue={d.preferredStaffId ?? ""} className={inputCls}>
+          <select
+            name="preferredStaffId"
+            defaultValue={d.preferredStaffId ?? (staff.length === 1 ? staff[0].id : "")}
+            className={inputCls}
+          >
             <option value="">未設定</option>
             {staff.map((s) => (
               <option key={s.id} value={s.id}>
@@ -123,19 +127,19 @@ export function CustomerForm({
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="髪質" name="hairType" error={fe.hairType} hint="カンマ・; 区切りで複数入力可（例: くせ毛, 乾燥毛）">
-          <textarea name="hairType" rows={2} defaultValue={d.hairType} className={inputCls} />
+        <Field label="髪質" name="hairType" error={fe.hairType} hint="複数ある場合は改行して1行に1つ入力">
+          <textarea name="hairType" rows={3} defaultValue={d.hairType} placeholder={"くせ毛\n乾燥毛"} className={inputCls} />
         </Field>
-        <Field label="肌質（頭皮）" name="skinType" error={fe.skinType} hint="カンマ・; 区切りで複数入力可（例: 敏感肌, 乾燥）">
-          <textarea name="skinType" rows={2} defaultValue={d.skinType} className={inputCls} />
+        <Field label="肌質（頭皮）" name="skinType" error={fe.skinType} hint="複数ある場合は改行して1行に1つ入力">
+          <textarea name="skinType" rows={3} defaultValue={d.skinType} placeholder={"敏感肌\n乾燥"} className={inputCls} />
         </Field>
         <Field
           label="アレルギー・禁忌"
           name="allergies"
           error={fe.allergies}
-          hint="カンマ・改行区切りで複数入力可。施術時に警告表示されます"
+          hint="複数ある場合は改行して1行に1つ入力。施術時に警告表示されます"
         >
-          <textarea name="allergies" rows={2} defaultValue={d.allergies} className={inputCls} />
+          <textarea name="allergies" rows={3} defaultValue={d.allergies} placeholder={"ジアミン\n香料"} className={inputCls} />
         </Field>
         <Field label="嗜好" name="preferences" error={fe.preferences}>
           <textarea name="preferences" rows={2} defaultValue={d.preferences} className={inputCls} />

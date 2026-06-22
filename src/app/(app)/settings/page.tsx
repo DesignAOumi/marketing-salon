@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
 import { getSettingsView, SHAREABLE_FIELDS } from "@/lib/settings";
 import { SettingsForm } from "@/components/SettingsForm";
+import { SetupChecklist } from "@/components/SetupChecklist";
 import {
   saveSalonInfoAction,
   saveAiSettingsAction,
@@ -38,6 +39,10 @@ export default async function SettingsPage() {
         clearApiKey={clearApiKeyAction}
         testConnection={testConnectionAction}
       />
+
+      <div className="mt-8">
+        <SetupChecklist />
+      </div>
     </div>
   );
 }
