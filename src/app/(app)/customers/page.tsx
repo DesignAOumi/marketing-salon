@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listCustomers } from "@/lib/customers";
-import { deriveStatus } from "@/lib/customer-status";
+import { deriveStatus, daysSince } from "@/lib/customer-status";
 import { StatusBadge } from "@/components/StatusBadge";
 import { formatDate, formatYen } from "@/lib/format";
 
@@ -177,12 +177,18 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         </details>
       </form>
 
+      <p className="mb-2 text-xs text-zinc-400">
+        状態は「最終来店からの経過 ÷ 平均来店間隔（＝サイクル経過率）」で判定：100%以下=アクティブ / 100〜300%=要フォロー /
+        300%超=休眠（来店1回以下=新規）。
+      </p>
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
             <tr>
               <th className="whitespace-nowrap px-4 py-3 font-medium">氏名</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">状態</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">平均来店間隔</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">サイクル経過率</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">来店回数</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">最終来店</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">累計売上</th>
@@ -193,11 +199,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <tbody className="divide-y divide-zinc-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-zinc-400">該当する顧客がいません。</td>
+                <td colSpan={9} className="px-4 py-10 text-center text-zinc-400">該当する顧客がいません。</td>
               </tr>
             ) : (
               rows.map((c) => {
                 const s = deriveStatus(c);
+                const dsl = daysSince(c.lastVisitDate);
+                const avg = c.avgVisitIntervalDays && c.avgVisitIntervalDays > 0 ? Math.round(c.avgVisitIntervalDays) : null;
+                const ratio = avg && dsl != null ? Math.round((dsl / avg) * 100) : null;
                 return (
                   <tr key={c.id} className="hover:bg-zinc-50">
                     <td className="px-4 py-3">
@@ -208,6 +217,17 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge label={s.label} tone={s.tone} />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{avg != null ? `${avg} 日` : "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
+                      {ratio != null ? (
+                        <>
+                          <span className="font-medium">{ratio}%</span>
+                          <span className="block text-[10px] text-zinc-400">{dsl}/{avg}日</span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{c.visitCount} 回</td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{formatDate(c.lastVisitDate)}</td>
