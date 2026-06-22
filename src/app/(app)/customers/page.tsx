@@ -104,21 +104,22 @@ export default async function CustomersPage({
       </nav>
 
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full min-w-[640px] text-sm">
+        <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
             <tr>
-              <th className="px-4 py-3 font-medium">氏名</th>
-              <th className="px-4 py-3 font-medium">状態</th>
-              <th className="px-4 py-3 font-medium">来店回数</th>
-              <th className="px-4 py-3 font-medium">最終来店</th>
-              <th className="px-4 py-3 font-medium">累計売上</th>
-              <th className="px-4 py-3 font-medium">連絡同意</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">氏名</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">状態</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">来店回数</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">最終来店</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">累計売上</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">平均売上単価</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">連絡同意</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-zinc-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-zinc-400">
                   該当する顧客がいません。
                 </td>
               </tr>
@@ -128,20 +129,23 @@ export default async function CustomersPage({
                 return (
                   <tr key={c.id} className="hover:bg-zinc-50">
                     <td className="px-4 py-3">
-                      <Link href={`/customers/${c.id}`} className="font-medium text-zinc-900 hover:underline">
+                      <Link href={`/customers/${c.id}`} className="block whitespace-nowrap font-medium text-zinc-900 hover:underline">
                         {c.name}
                       </Link>
                       {c.nameKana ? (
-                        <span className="ml-2 text-xs text-zinc-400">{c.nameKana}</span>
+                        <span className="block whitespace-nowrap text-xs text-zinc-400">{c.nameKana}</span>
                       ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge label={s.label} tone={s.tone} />
                     </td>
-                    <td className="px-4 py-3 text-zinc-600">{c.visitCount} 回</td>
-                    <td className="px-4 py-3 text-zinc-600">{formatDate(c.lastVisitDate)}</td>
-                    <td className="px-4 py-3 text-zinc-600">{formatYen(c.totalSales)}</td>
-                    <td className="px-4 py-3 text-zinc-600">
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{c.visitCount} 回</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{formatDate(c.lastVisitDate)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{formatYen(c.totalSales)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
+                      {c.visitCount > 0 ? formatYen(Math.round(c.totalSales / c.visitCount)) : "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
                       {c.consentToContact ? "○" : "—"}
                     </td>
                   </tr>
