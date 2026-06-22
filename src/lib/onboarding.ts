@@ -10,11 +10,12 @@ export const ONBOARDING_STEPS = [
   { key: "account", title: "アカウント作成", desc: "管理者アカウントを作成します。" },
   { key: "salon", title: "サロン情報", desc: "サロン名・連絡先・通貨などを登録します。" },
   { key: "customers", title: "顧客データ", desc: "サンプル取り込み、またはCSVで顧客を登録します。" },
-  { key: "menus", title: "メニュー登録", desc: "提供する施術メニューを登録します。" },
+  { key: "menus", title: "区分・メニュー登録", desc: "区分とメニューを登録します。" },
+  { key: "confirm", title: "登録内容の確認", desc: "区分・メニューの登録内容を確認します。" },
   { key: "ai", title: "AI連携", desc: "Claude APIキー登録（任意・既定はオフライン）。" },
 ] as const;
 
-export const TOTAL_STEPS = ONBOARDING_STEPS.length; // 5
+export const TOTAL_STEPS = ONBOARDING_STEPS.length; // 6
 
 export type OnboardingState = {
   step: number; // 現在取り組むステップ index（0..TOTAL_STEPS）

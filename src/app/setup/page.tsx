@@ -3,13 +3,33 @@ import { getSession } from "@/lib/auth";
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { listServices } from "@/lib/services";
+import { listCategories, ensureDefaultCategories } from "@/lib/categories";
 import { getOnboarding, ONBOARDING_STEPS, TOTAL_STEPS } from "@/lib/onboarding";
 import { goBackAction } from "./actions";
 import { AccountStep } from "@/components/setup/AccountStep";
 import { SalonStep } from "@/components/setup/SalonStep";
 import { CustomersStep } from "@/components/setup/CustomersStep";
 import { MenusStep } from "@/components/setup/MenusStep";
+import { ConfirmStep } from "@/components/setup/ConfirmStep";
 import { AiStep } from "@/components/setup/AiStep";
+
+const mapSvc = (s: {
+  id: string;
+  name: string;
+  price: number;
+  memberPrice: number | null;
+  category: string | null;
+  durationMin: number | null;
+  defaultCycleDays: number | null;
+}) => ({
+  id: s.id,
+  name: s.name,
+  price: s.price,
+  memberPrice: s.memberPrice,
+  category: s.category,
+  durationMin: s.durationMin,
+  defaultCycleDays: s.defaultCycleDays,
+});
 
 export const dynamic = "force-dynamic";
 
@@ -35,17 +55,20 @@ export default async function SetupPage() {
     const customerCount = await prisma.customer.count({ where: { deletedAt: null } });
     body = <CustomersStep customerCount={customerCount} />;
   } else if (step === 3) {
-    const svc = await listServices();
+    await ensureDefaultCategories();
+    const [svc, cats] = await Promise.all([listServices(), listCategories()]);
     body = (
       <MenusStep
-        services={svc.map((s) => ({
-          id: s.id,
-          name: s.name,
-          price: s.price,
-          category: s.category,
-          durationMin: s.durationMin,
-          defaultCycleDays: s.defaultCycleDays,
-        }))}
+        services={svc.map(mapSvc)}
+        categories={cats.map((c) => ({ id: c.id, name: c.name }))}
+      />
+    );
+  } else if (step === 4) {
+    const [svc, cats] = await Promise.all([listServices(), listCategories()]);
+    body = (
+      <ConfirmStep
+        services={svc.map(mapSvc)}
+        categories={cats.map((c) => ({ id: c.id, name: c.name }))}
       />
     );
   } else {

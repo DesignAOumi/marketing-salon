@@ -112,8 +112,9 @@ model Visit {
 model Service {
   id               String   @id @default(cuid())
   name             String
-  category         String? // cut / color / perm / spa 等
-  price            Int // 標準価格（円）
+  category         String? // 区分（Category.name を保持）。施術 / サロンケア物販 等
+  price            Int // 標準価格（円・税込）
+  memberPrice      Int? // 会員価格（円・税込）
   durationMin      Int? // 標準施術時間（分）。予約枠算出に利用
   defaultCycleDays Int? // 推奨来店周期（日）。来店履歴が乏しい新規のM6予測フォールバック
   isActive         Boolean  @default(true)
@@ -123,6 +124,15 @@ model Service {
   visits       Visit[]
   saleItems    SaleItem[]
   reservations Reservation[]
+}
+
+// ── Category（メニュー区分マスタ）──────────────────────────────
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
 }
 
 // ── Sale（会計 / 伝票ヘッダ）──────────────────────────────────

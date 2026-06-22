@@ -16,6 +16,7 @@ export async function createService(data: {
   name: string;
   category?: string | null;
   price: number;
+  memberPrice?: number | null;
   durationMin?: number | null;
   defaultCycleDays?: number | null;
 }) {
@@ -24,6 +25,7 @@ export async function createService(data: {
       name: data.name,
       category: data.category ?? null,
       price: data.price,
+      memberPrice: data.memberPrice ?? null,
       durationMin: data.durationMin ?? null,
       defaultCycleDays: data.defaultCycleDays ?? null,
       isActive: true,
@@ -37,6 +39,7 @@ export async function updateService(
     name: string;
     category?: string | null;
     price: number;
+    memberPrice?: number | null;
     durationMin?: number | null;
     defaultCycleDays?: number | null;
   },
@@ -47,6 +50,7 @@ export async function updateService(
       name: data.name,
       category: data.category ?? null,
       price: data.price,
+      memberPrice: data.memberPrice ?? null,
       durationMin: data.durationMin ?? null,
       defaultCycleDays: data.defaultCycleDays ?? null,
     },

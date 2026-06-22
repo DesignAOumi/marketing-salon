@@ -9,6 +9,7 @@ import { advanceTo, completeSetup } from "@/lib/onboarding";
 import { updateSalonInfo, setApiKey, DEFAULT_SHARED_FIELDS, getSettings } from "@/lib/settings";
 import { importSampleCustomers } from "@/lib/sample-data";
 import { createService, updateService, deleteService, countServices } from "@/lib/services";
+import { createCategory, updateCategory, deleteCategory } from "@/lib/categories";
 
 export type WizState = { error?: string; ok?: string };
 
@@ -87,6 +88,7 @@ export async function addServiceAction(_prev: WizState, formData: FormData): Pro
   await createService({
     name,
     price: Math.round(price),
+    memberPrice: Number(formData.get("memberPrice")) || null,
     category: String(formData.get("category") ?? "").trim() || null,
     durationMin: Number(formData.get("durationMin")) || null,
     defaultCycleDays: Number(formData.get("defaultCycleDays")) || null,
@@ -106,6 +108,7 @@ export async function updateServiceAction(_prev: WizState, formData: FormData): 
   await updateService(id, {
     name,
     price: Math.round(price),
+    memberPrice: Number(formData.get("memberPrice")) || null,
     category: String(formData.get("category") ?? "").trim() || null,
     durationMin: Number(formData.get("durationMin")) || null,
     defaultCycleDays: Number(formData.get("defaultCycleDays")) || null,
@@ -121,10 +124,46 @@ export async function deleteServiceAction(formData: FormData): Promise<void> {
   revalidatePath("/setup");
 }
 
+// ── 区分（Category）マスタ ────────────────────────────────
+export async function addCategoryAction(_prev: WizState, formData: FormData): Promise<WizState> {
+  await requireSetupSession();
+  const name = String(formData.get("name") ?? "").trim();
+  if (!name) return { error: "区分名は必須です。" };
+  await createCategory(name);
+  revalidatePath("/setup");
+  return { ok: "区分を追加しました。" };
+}
+
+export async function updateCategoryAction(_prev: WizState, formData: FormData): Promise<WizState> {
+  await requireSetupSession();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id) return { error: "対象が不明です。" };
+  if (!name) return { error: "区分名は必須です。" };
+  await updateCategory(id, name);
+  revalidatePath("/setup");
+  return { ok: "保存しました。" };
+}
+
+export async function deleteCategoryAction(formData: FormData): Promise<void> {
+  await requireSetupSession();
+  const id = String(formData.get("id") ?? "");
+  if (id) await deleteCategory(id);
+  revalidatePath("/setup");
+}
+
+// メニュー登録 → 確認ステップへ。
 export async function advanceMenusAction(_prev: WizState, _formData: FormData): Promise<WizState> {
   await requireSetupSession();
   if ((await countServices()) < 1) return { error: "メニューを1つ以上登録してください。" };
   await advanceTo(4);
+  redirect("/setup");
+}
+
+// 確認 → AI連携へ。
+export async function advanceConfirmAction(): Promise<void> {
+  await requireSetupSession();
+  await advanceTo(5);
   redirect("/setup");
 }
 
