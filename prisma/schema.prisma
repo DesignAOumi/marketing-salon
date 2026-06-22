@@ -266,6 +266,7 @@ model Settings {
   aiProvider          String  @default("claude") // 将来差し替え可
   aiModel             String? // 既定モデル名
   encryptedApiKey     String? // BYO APIキー（AES-256-GCM 暗号化）。平文保存禁止
+  apiKeyStatus        String? // 稼働状態: ok(正常) / credit(残高不足) / error(その他) / null(未確認)
   apiKeyIv            String? // 暗号化 IV/nonce
   aiSharedFields      String? // JSON配列：AI送信を許可するフィールド集合（PII最小化）
   anonymizeBeforeSend Boolean @default(true) // 送信前匿名化（既定ON）

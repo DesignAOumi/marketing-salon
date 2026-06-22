@@ -50,7 +50,13 @@ export async function getSettingsView() {
     aiSharedFields: s.aiSharedFields ? (JSON.parse(s.aiSharedFields) as string[]) : DEFAULT_SHARED_FIELDS,
     themeColor: s.themeColor,
     hasApiKey: !!s.encryptedApiKey,
+    apiKeyStatus: s.apiKeyStatus, // ok / credit / error / null
   };
+}
+
+export async function updateApiKeyStatus(status: string | null) {
+  await getSettings();
+  return prisma.settings.update({ where: { id: "singleton" }, data: { apiKeyStatus: status } });
 }
 
 export async function updateTheme(themeColor: string) {

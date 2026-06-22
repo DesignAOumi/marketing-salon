@@ -16,7 +16,8 @@ export default async function SuggestionsPage() {
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   const apiReady = settings.aiMode === "connected" && !!settings.encryptedApiKey; // 連携済み（キー登録あり）
-  const aiActive = apiReady && settings.aiEnabled; // 実際にAI生成を使う
+  const statusOk = settings.apiKeyStatus === "ok"; // 正常稼働中（残高あり）
+  const aiActive = apiReady && statusOk && settings.aiEnabled; // 実際にAI生成を使う
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -31,20 +32,25 @@ export default async function SuggestionsPage() {
         <div className="mt-3 flex flex-wrap items-center gap-3">
           {aiActive ? (
             <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">🔗 AI連携：ON（Claudeで生成）</span>
-          ) : apiReady ? (
+          ) : apiReady && statusOk ? (
             <span className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600">AI連携：OFF（オフライン生成中）</span>
+          ) : apiReady && !statusOk ? (
+            <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-700">
+              {settings.apiKeyStatus === "credit" ? "残高不足により稼働不可（オフライン生成中）" : "APIキー稼働不可（オフライン生成中）"}
+            </span>
           ) : (
             <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500">オフライン生成（外部送信ゼロ）</span>
           )}
-          {apiReady ? (
+          {/* ON/OFF は「連携あり＋正常稼働中」のときのみ。 */}
+          {apiReady && statusOk ? (
             <form action={toggleAiAction}>
               <button className="rounded-md border border-zinc-300 px-3 py-1 text-xs text-zinc-700 hover:bg-zinc-100">
                 {settings.aiEnabled ? "AI連携をOFFにする" : "AI連携をONにする"}
               </button>
             </form>
           ) : (
-            <Link href="/settings" className="text-xs text-blue-600 hover:underline">
-              AI連携を設定する →
+            <Link href="/settings#ai" className="text-xs text-blue-600 hover:underline">
+              {apiReady && !statusOk ? "残高/接続を確認する →" : "AI連携を設定する →"}
             </Link>
           )}
         </div>

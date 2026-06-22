@@ -143,10 +143,12 @@ export async function generateConnectedAdvice(customerId: string): Promise<Conne
   }
 }
 
-/** 接続テスト（FR-M0-07）。キーで小さなリクエストを投げ、成否を返す。 */
-export async function testConnection(): Promise<{ ok: boolean; message: string }> {
+export type ApiKeyStatus = "ok" | "credit" | "error" | "none";
+
+/** 接続テスト（FR-M0-07）。稼働状態（正常/残高不足/エラー）を判定して返す。 */
+export async function testConnection(): Promise<{ ok: boolean; message: string; status: ApiKeyStatus }> {
   const apiKey = await getDecryptedApiKey();
-  if (!apiKey) return { ok: false, message: "APIキーが未登録です。" };
+  if (!apiKey) return { ok: false, message: "APIキーが未登録です。", status: "none" };
   const settings = await getSettings();
   try {
     const client = new Anthropic({ apiKey });
@@ -155,8 +157,16 @@ export async function testConnection(): Promise<{ ok: boolean; message: string }
       max_tokens: 8,
       messages: [{ role: "user", content: "ping" }],
     });
-    return { ok: true, message: "接続成功。APIキーは有効です。" };
+    return { ok: true, message: "正常稼働中（APIキー有効・残高あり）。", status: "ok" };
   } catch (e) {
-    return { ok: false, message: "接続失敗: " + (e instanceof Error ? e.message : String(e)) };
+    const msg = e instanceof Error ? e.message : String(e);
+    const isCredit = /credit|balance|too low|insufficient|quota|payment|402/i.test(msg);
+    return {
+      ok: false,
+      status: isCredit ? "credit" : "error",
+      message: isCredit
+        ? "残高不足により稼働不可。console.anthropic.com の Plans & Billing でクレジットを購入してください。"
+        : "接続失敗: " + msg,
+    };
   }
 }

@@ -49,7 +49,12 @@ export default async function CustomerDetailPage({
   ]);
   if (!customer) notFound();
 
-  const showConnectedAi = settings.aiEnabled && settings.aiMode === "connected" && customer.consentToContact;
+  const showConnectedAi =
+    settings.aiEnabled &&
+    settings.aiMode === "connected" &&
+    !!settings.encryptedApiKey &&
+    settings.apiKeyStatus === "ok" &&
+    customer.consentToContact;
   const boundConnectedAdvice = generateConnectedAdviceAction.bind(null, id);
 
   const s = deriveStatus(customer);
@@ -210,8 +215,6 @@ export default async function CustomerDetailPage({
         </section>
 
         <section className="lg:col-span-2">
-          {settings.aiEnabled ? (
-            <>
           {showConnectedAi ? <ConnectedAdvicePanel action={boundConnectedAdvice} /> : null}
           <div className="mb-4 rounded-xl border border-zinc-200 bg-white p-5">
             <div className="mb-3 flex items-center justify-between">
@@ -253,8 +256,6 @@ export default async function CustomerDetailPage({
               </ul>
             )}
           </div>
-            </>
-          ) : null}
           <div className="rounded-xl border border-zinc-200 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-zinc-800">施術履歴（来店）</h2>
             <div className="mb-4 rounded-lg bg-zinc-50 p-3">

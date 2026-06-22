@@ -41,6 +41,14 @@ const OPEN_APPROACHING = [
   "そろそろ気になる頃ではないでしょうか。",
 ];
 
+// 超過者向け：来店間隔が空きすぎる（休眠）前に来てもらうための一言。日付は指定しない。
+const OVERDUE_URGE = [
+  "間隔が空くほど、お手入れが必要になりがちです。お早めのご来店がおすすめです。",
+  "今ならまだ整えやすいタイミングです。ぜひお早めにいらしてください。",
+  "これ以上間隔が空く前に、一度メンテナンスにいらっしゃいませんか。",
+  "ベストな状態を保つために、近いうちのご来店がおすすめです。",
+];
+
 const BODIES = [
   "{name}様にまたお会いできるのを楽しみにしております。",
   "スタッフ一同、心よりお待ちしております。",
@@ -93,10 +101,15 @@ export function composeRevisitMessage(ctx: RevisitMessageCtx, seed?: number): st
   const cta = pick(CTAS, s, 5);
   const treat = pick(TREATS, s, 6);
 
-  // 文脈の添え（前回施術 / 次回予測日 / 担当）。空行＋短文で余白を活かす。
+  // 文脈の添え。超過者は休眠前の来店を促す（過去日の「目安」は出さない）。
+  // 接近者のみ、未来の予測日があれば「次回の目安」を提示する。
   const ctxLines: string[] = [];
   if (ctx.lastService) ctxLines.push(`前回は「${ctx.lastService}」をご利用いただきました。`);
-  if (ctx.nextDate) ctxLines.push(`次回の目安は ${ctx.nextDate} 頃です。`);
+  if (ctx.overdue) {
+    ctxLines.push(pick(OVERDUE_URGE, s, 7));
+  } else if (ctx.nextDate) {
+    ctxLines.push(`次回の目安は ${ctx.nextDate} 頃です。`);
+  }
   const sign = ctx.staff ? `担当：${ctx.staff} より` : "";
 
   // 型: 見出し → (空行) → 結論 → 区切り → 本文ブロック → 区切り → CTA → (空行) → 添え → 署名

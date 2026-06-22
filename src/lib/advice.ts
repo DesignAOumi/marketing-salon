@@ -270,6 +270,7 @@ export type M6Target = {
 /** M6 抽出（§B.3）：周期接近/超過 × 未予約 × 周期確定 × 連絡同意。 */
 export async function getM6Targets(): Promise<M6Target[]> {
   const contexts = await buildAllContexts();
+  const now = new Date();
   const targets: M6Target[] = [];
   for (const cc of contexts.values()) {
     const inWindow = cc.cycleState === "approaching" || cc.cycleState === "overdue";
@@ -282,7 +283,8 @@ export async function getM6Targets(): Promise<M6Target[]> {
         {
           name: cc.name,
           lastService: cc.lastService,
-          nextDate: cc.nextPredictedVisitDate ? formatDate(cc.nextPredictedVisitDate) : null,
+          // 過去日は「目安」に出さない（提案日より前にしない）。
+          nextDate: cc.nextPredictedVisitDate && cc.nextPredictedVisitDate >= now ? formatDate(cc.nextPredictedVisitDate) : null,
           staff: cc.preferredStaffName,
           overdue: cc.cycleState === "overdue",
         },
@@ -319,11 +321,12 @@ export async function regenerateRevisitMessage(customerId: string, seed: number)
   const contexts = await buildAllContexts();
   const cc = contexts.get(customerId);
   if (!cc || !cc.consentToContact) return null;
+  const now = new Date();
   return composeRevisitMessage(
     {
       name: cc.name,
       lastService: cc.lastService,
-      nextDate: cc.nextPredictedVisitDate ? formatDate(cc.nextPredictedVisitDate) : null,
+      nextDate: cc.nextPredictedVisitDate && cc.nextPredictedVisitDate >= now ? formatDate(cc.nextPredictedVisitDate) : null,
       staff: cc.preferredStaffName,
       overdue: cc.cycleState === "overdue",
     },

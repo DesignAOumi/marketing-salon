@@ -20,6 +20,7 @@ type View = {
   aiSharedFields: string[];
   themeColor: string;
   hasApiKey: boolean;
+  apiKeyStatus: string | null;
 };
 type Field = { key: string; label: string; pii: boolean };
 
@@ -130,14 +131,24 @@ export function SettingsForm({
       </Section>
 
       {/* AI連携（モード/モデル/APIキー） */}
-      <Section title="AI連携" desc="AI機能のON/OFFと、連携あり時のClaude APIキー。">
+      <Section title="AI連携" desc="連携あり（Claude生成）のON/OFFと、Claude APIキー。">
         <form action={aiAction}>
           <label className="inline-flex cursor-pointer items-center gap-2">
-            <input type="checkbox" name="aiEnabled" defaultChecked={view.aiEnabled} className="peer sr-only" />
-            <span className="relative h-6 w-11 rounded-full bg-zinc-300 transition-colors peer-checked:bg-emerald-500 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-            <span className="text-sm font-medium text-zinc-700">AI機能を使う（ON / OFF）</span>
+            <input
+              type="checkbox"
+              name="aiEnabled"
+              defaultChecked={view.aiEnabled && view.apiKeyStatus === "ok"}
+              disabled={view.apiKeyStatus !== "ok"}
+              className="peer sr-only"
+            />
+            <span className="relative h-6 w-11 rounded-full bg-zinc-300 transition-colors peer-checked:bg-emerald-500 peer-disabled:opacity-40 after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
+            <span className="text-sm font-medium text-zinc-700">AI連携（Claude生成）を使う（ON / OFF）</span>
           </label>
-          <p className="mt-1 text-xs text-zinc-400">OFFにすると顧客カルテのAIアドバイスを表示しません。</p>
+          <p className="mt-1 text-xs text-zinc-400">
+            {view.apiKeyStatus === "ok"
+              ? "ONにすると連絡文をClaudeで生成します。"
+              : "APIキーが「正常稼働中」のときのみONにできます（下のAPIキーで設定・接続テスト）。"}
+          </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm">
@@ -163,7 +174,17 @@ export function SettingsForm({
         <div className="mt-5 border-t border-zinc-100 pt-4">
           <p className="mb-3 text-xs text-zinc-500">
             Claude APIキー（BYO）— 保存時に AES-256-GCM で暗号化。状態:{" "}
-            {view.hasApiKey ? <span className="text-emerald-600">登録済み</span> : <span className="text-zinc-500">未登録</span>}
+            {!view.hasApiKey ? (
+              <span className="text-zinc-500">未登録</span>
+            ) : view.apiKeyStatus === "ok" ? (
+              <span className="font-medium text-emerald-600">● 正常稼働中（残高あり・有効）</span>
+            ) : view.apiKeyStatus === "credit" ? (
+              <span className="font-medium text-red-600">● 残高不足により稼働不可</span>
+            ) : view.apiKeyStatus === "error" ? (
+              <span className="font-medium text-red-600">● 接続エラー（稼働不可）</span>
+            ) : (
+              <span className="font-medium text-amber-600">● 登録済み・未確認（接続テストで確認）</span>
+            )}
           </p>
           <form action={keyAction} className="flex flex-wrap items-end gap-3">
             <label className="flex flex-1 flex-col gap-1 text-sm">

@@ -7,8 +7,10 @@ import {
   updateAiConnection,
   updatePrivacy,
   updateTheme,
+  updateApiKeyStatus,
   setApiKey,
   clearApiKey,
+  getSettings,
   SHAREABLE_FIELDS,
 } from "@/lib/settings";
 import { isThemeKey } from "@/lib/theme";
@@ -59,9 +61,18 @@ export async function saveAiSettingsAction(
 ): Promise<SettingsState> {
   const err = await ensureOwner();
   if (err) return { error: err };
-  const aiEnabled = formData.get("aiEnabled") === "on";
+  let aiEnabled = formData.get("aiEnabled") === "on";
   const aiMode = formData.get("aiMode") === "connected" ? "connected" : "offline";
   const aiModel = String(formData.get("aiModel") ?? "claude-opus-4-8").trim() || "claude-opus-4-8";
+  // 連携あり＋ON は「正常稼働中」のみ許可。残高不足/未確認では ON にできない。
+  if (aiEnabled && aiMode === "connected") {
+    const cur = await getSettings();
+    if (cur.apiKeyStatus !== "ok") {
+      await updateAiConnection({ aiEnabled: false, aiMode, aiModel });
+      revalidatePath("/settings");
+      return { error: "APIキーが「正常稼働中」ではないため、AI連携をONにできません。接続テストで確認してください。" };
+    }
+  }
   await updateAiConnection({ aiEnabled, aiMode, aiModel });
   revalidatePath("/settings");
   return { ok: "AI連携設定を保存しました。" };
@@ -96,14 +107,23 @@ export async function saveApiKeyAction(
   const key = String(formData.get("apiKey") ?? "").trim();
   if (!key) return { error: "APIキーを入力してください。" };
   await setApiKey(key);
+  // 保存時に稼働状態を自動判定（正常稼働/残高不足/エラー）。
+  const test = await testConnection();
+  await updateApiKeyStatus(test.status === "none" ? null : test.status);
   revalidatePath("/settings");
-  return { ok: "APIキーを暗号化して保存しました。" };
+  return test.ok
+    ? { ok: "APIキーを暗号化して保存しました。" + test.message }
+    : { error: "保存しましたが、" + test.message };
 }
 
 export async function clearApiKeyAction(): Promise<void> {
   const err = await ensureOwner();
   if (err) return;
   await clearApiKey();
+  await updateApiKeyStatus(null);
+  // 連携ありはキー削除でOFFに。
+  const cur = await getSettings();
+  await updateAiConnection({ aiEnabled: false, aiMode: cur.aiMode, aiModel: cur.aiModel ?? "claude-opus-4-8" });
   revalidatePath("/settings");
 }
 
@@ -114,5 +134,7 @@ export async function testConnectionAction(
   const err = await ensureOwner();
   if (err) return { error: err };
   const result = await testConnection();
+  await updateApiKeyStatus(result.status === "none" ? null : result.status);
+  revalidatePath("/settings");
   return result.ok ? { ok: result.message } : { error: result.message };
 }

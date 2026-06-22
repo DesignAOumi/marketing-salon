@@ -27,7 +27,11 @@ export async function regenerateSuggestionAction(
 ): Promise<{ message: string | null; error?: string }> {
   await requireAuth();
   const settings = await getSettings();
-  const connected = settings.aiEnabled && settings.aiMode === "connected" && !!settings.encryptedApiKey;
+  const connected =
+    settings.aiEnabled &&
+    settings.aiMode === "connected" &&
+    !!settings.encryptedApiKey &&
+    settings.apiKeyStatus === "ok";
   if (connected) {
     const r = await generateConnectedAdvice(customerId);
     if (r?.customerMessage) return { message: r.customerMessage };
@@ -37,10 +41,15 @@ export async function regenerateSuggestionAction(
   return { message: await regenerateRevisitMessage(customerId, seed) };
 }
 
-/** 提案画面の AI連携 ON/OFF トグル。 */
+/** 提案画面の AI連携 ON/OFF トグル。ONは正常稼働中のみ許可。 */
 export async function toggleAiAction(): Promise<void> {
   await requireAuth();
   const s = await getSettings();
+  const turningOn = !s.aiEnabled;
+  if (turningOn && s.apiKeyStatus !== "ok") {
+    revalidatePath("/suggestions");
+    return; // 正常稼働中でなければONにしない
+  }
   await updateAiConnection({
     aiEnabled: !s.aiEnabled,
     aiMode: s.aiMode,
