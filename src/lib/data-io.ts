@@ -10,6 +10,7 @@ import { decrypt } from "@/lib/crypto";
 import { createCustomer, updateCustomer } from "@/lib/customers";
 import { customerInputSchema } from "@/lib/validation";
 import { toCsv } from "@/lib/csv";
+import { getAnalytics } from "@/lib/analytics";
 import { toDateInputValue } from "@/lib/format";
 
 export const CUSTOMER_COLUMNS = [
@@ -148,4 +149,103 @@ export async function importCustomerRecords(
     }
   }
   return result;
+}
+
+// ── 売上 / 予約 / 分析 のエクスポート ────────────────────────
+const BOM = "﻿";
+function fmtDT(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const PAY_LABEL: Record<string, string> = { cash: "現金", card: "カード", emoney: "電子マネー", other: "その他" };
+const RES_STATUS_LABEL: Record<string, string> = { booked: "予約済み", done: "来店済み", cancelled: "取り消し", noshow: "無断キャンセル" };
+const SEG_LABEL: Record<string, string> = { vip: "VIP", loyal: "優良", stable: "安定", new: "新規", at_risk: "離反リスク", lost: "離反" };
+const CYCLE_LABEL: Record<string, string> = { before: "予測前", approaching: "接近", overdue: "超過", dormant: "休眠", unknown: "算出不可" };
+
+// 売上
+const SALES_COLUMNS = ["date", "customer", "items", "totalAmount", "discountAmount", "paymentMethod", "staff"];
+async function salesRows() {
+  const sales = await prisma.sale.findMany({
+    orderBy: { date: "desc" },
+    include: {
+      customer: { select: { name: true } },
+      staff: { select: { name: true } },
+      items: { select: { name: true } },
+    },
+  });
+  return sales.map((s) => ({
+    date: fmtDT(s.date),
+    customer: s.customer.name,
+    items: s.items.map((i) => i.name).join("・"),
+    totalAmount: s.totalAmount,
+    discountAmount: s.discountAmount,
+    paymentMethod: s.paymentMethod ? (PAY_LABEL[s.paymentMethod] ?? s.paymentMethod) : "",
+    staff: s.staff?.name ?? "",
+  }));
+}
+export async function exportSalesJson() {
+  return JSON.stringify(await salesRows(), null, 2);
+}
+export async function exportSalesCsv() {
+  return BOM + toCsv(SALES_COLUMNS, await salesRows());
+}
+
+// 予約
+const RESERVATION_COLUMNS = ["startAt", "customer", "menus", "staff", "status", "source"];
+function reservationMenus(menusJson: string | null, memo: string | null): string {
+  if (menusJson) {
+    try {
+      const a = JSON.parse(menusJson);
+      if (Array.isArray(a)) return a.map((m) => m?.name).filter(Boolean).join("・");
+    } catch {
+      /* noop */
+    }
+  }
+  return memo ?? "";
+}
+async function reservationRows() {
+  const rs = await prisma.reservation.findMany({
+    orderBy: { startAt: "desc" },
+    include: { customer: { select: { name: true } }, staff: { select: { name: true } } },
+  });
+  return rs.map((r) => ({
+    startAt: fmtDT(r.startAt),
+    customer: r.customer.name,
+    menus: reservationMenus(r.menusJson, r.memo),
+    staff: r.staff?.name ?? "",
+    status: RES_STATUS_LABEL[r.status] ?? r.status,
+    source: r.source,
+  }));
+}
+export async function exportReservationsJson() {
+  return JSON.stringify(await reservationRows(), null, 2);
+}
+export async function exportReservationsCsv() {
+  return BOM + toCsv(RESERVATION_COLUMNS, await reservationRows());
+}
+
+// 分析ダッシュボード（集計を long 形式 CSV / 生集計 JSON で出力）
+const ANALYTICS_COLUMNS = ["category", "item", "value"];
+async function analyticsRows() {
+  const a = await getAnalytics();
+  const rows: { category: string; item: string; value: number | string }[] = [];
+  const push = (category: string, item: string, value: number | string) => rows.push({ category, item, value });
+  push("KPI", "総顧客数", a.kpi.total);
+  push("KPI", "アクティブ", a.kpi.active);
+  push("KPI", "休眠", a.kpi.dormant);
+  push("KPI", "要フォロー", a.kpi.followUp);
+  push("KPI", "当月売上", a.kpi.monthSales);
+  push("KPI", "平均客単価", a.kpi.avgSpend);
+  push("KPI", "店販比率", a.kpi.retailRatio != null ? `${Math.round(a.kpi.retailRatio * 1000) / 10}%` : "-");
+  for (const [k, v] of Object.entries(a.segCount)) push("RFMセグメント", SEG_LABEL[k] ?? k, v);
+  for (const [k, v] of Object.entries(a.cycleCount)) push("来店サイクル", CYCLE_LABEL[k] ?? k, v);
+  for (const b of a.spendDist) push("客単価分布", b.label, b.count);
+  a.top.forEach((c, i) => push("上位顧客", `${i + 1}. ${c.name}`, c.totalSales));
+  return rows;
+}
+export async function exportAnalyticsJson() {
+  return JSON.stringify(await getAnalytics(), null, 2);
+}
+export async function exportAnalyticsCsv() {
+  return BOM + toCsv(ANALYTICS_COLUMNS, await analyticsRows());
 }

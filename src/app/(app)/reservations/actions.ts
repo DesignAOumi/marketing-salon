@@ -72,7 +72,7 @@ export async function markVisitedAction(
     date: String(formData.get("date") ?? ""),
     paymentMethod: String(formData.get("paymentMethod") ?? ""),
     staffId: res.staffId ?? "",
-    discountAmount: 0,
+    discountAmount: String(formData.get("discountAmount") ?? "0"),
     items: String(formData.get("items") ?? "[]"),
   });
   if (!parsed.success) {

@@ -24,6 +24,9 @@ const STATUS_LABEL: Record<string, { l: string; c: string }> = {
   noshow: { l: "無断キャンセル", c: "bg-red-100 text-red-700" },
 };
 
+type Item = { itemType: "service" | "product"; name: string; price: number };
+const isRetail = (cat?: string | null) => !!cat && cat.includes("物販");
+
 function parseMenus(json: string | null): { name: string; price: number }[] {
   if (!json) return [];
   try {
@@ -51,12 +54,36 @@ export default async function ReservationsPage() {
 
   const defaultStart = toDateTimeLocalValue(new Date(now.getTime() + 60 * 60 * 1000));
   const defaultStaffId = staff.length ? staff[0].id : "";
-  const today = toDateTimeLocalValue(now).slice(0, 10);
+  // 来店確認モーダルで「メニューを追加」する候補（区分が物販なら店販扱い）。
+  const menuOptions: Item[] = services.map((s) => ({
+    itemType: isRetail(s.category) ? "product" : "service",
+    name: s.name,
+    price: s.price,
+  }));
+  const svcByName = (nm: string) => services.find((s) => s.name === nm);
 
   const renderRow = (r: (typeof reservations)[number], canAct: boolean) => {
     const st = STATUS_LABEL[r.status] ?? { l: r.status, c: "bg-zinc-100" };
     const menus = parseMenus(r.menusJson);
     const menuLabel = menus.length ? menus.map((m) => m.name).join("・") : r.memo;
+    // モーダルのプリフィル：menusJson 優先。旧予約は memo/serviceId から価格・区分を補完。
+    let prefill: Item[] = menus.map((m) => ({
+      itemType: isRetail(svcByName(m.name)?.category) ? "product" : "service",
+      name: m.name,
+      price: m.price,
+    }));
+    if (prefill.length === 0) {
+      const names = (r.memo ?? "").split("・").map((s) => s.trim()).filter(Boolean);
+      prefill = names.map((nm) => {
+        const svc = svcByName(nm);
+        return { itemType: isRetail(svc?.category) ? "product" : "service", name: nm, price: svc?.price ?? 0 };
+      });
+      if (prefill.length === 0 && r.serviceId) {
+        const svc = services.find((s) => s.id === r.serviceId);
+        if (svc) prefill = [{ itemType: isRetail(svc.category) ? "product" : "service", name: svc.name, price: svc.price }];
+      }
+    }
+    const resDate = toDateTimeLocalValue(r.startAt).slice(0, 10);
     const boundCancel = setReservationStatusAction.bind(null, r.id, "cancelled");
     const boundDelete = deleteReservationAction.bind(null, r.id);
     return (
@@ -76,8 +103,9 @@ export default async function ReservationsPage() {
               <VisitedButton
                 action={markVisitedAction.bind(null, r.id)}
                 customerName={r.customer.name}
-                prefill={menus}
-                today={today}
+                prefill={prefill}
+                menuOptions={menuOptions}
+                defaultDate={resDate}
               />
               <form action={boundCancel}>
                 <button className="rounded border border-zinc-300 px-2 py-1 text-xs hover:bg-zinc-100">予約取り消し</button>

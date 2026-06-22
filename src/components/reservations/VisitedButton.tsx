@@ -3,8 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import type { VisitState } from "@/app/(app)/reservations/actions";
 
-type Item = { itemType: "service" | "product"; name: string; unitPrice: number; quantity: number };
-type Prefill = { name: string; price: number };
+type Item = { itemType: "service" | "product"; name: string; price: number };
 
 const inputCls = "rounded-md border border-zinc-300 px-2 py-1 text-sm outline-none focus:border-zinc-500";
 const yen = (n: number) => "¥" + n.toLocaleString("ja-JP");
@@ -13,22 +12,23 @@ export function VisitedButton({
   action,
   customerName,
   prefill,
-  today,
+  menuOptions,
+  defaultDate,
 }: {
   action: (prev: VisitState, formData: FormData) => Promise<VisitState>;
   customerName: string;
-  prefill: Prefill[];
-  today: string;
+  prefill: Item[];
+  menuOptions: Item[];
+  defaultDate: string;
 }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
+  const [discount, setDiscount] = useState(0);
   const [state, formAction, pending] = useActionState<VisitState, FormData>(action, {});
 
   function openModal() {
-    const init: Item[] = prefill.length
-      ? prefill.map((p) => ({ itemType: "service", name: p.name, unitPrice: p.price, quantity: 1 }))
-      : [{ itemType: "service", name: "", unitPrice: 0, quantity: 1 }];
-    setItems(init);
+    setItems(prefill.map((p) => ({ ...p })));
+    setDiscount(0);
     setOpen(true);
   }
 
@@ -36,10 +36,9 @@ export function VisitedButton({
     if (state.ok) setOpen(false);
   }, [state.ok]);
 
-  const upd = (idx: number, patch: Partial<Item>) =>
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
-  const total = items.reduce((a, i) => a + Math.max(0, i.unitPrice * i.quantity), 0);
-  const validItems = items.filter((i) => i.name.trim());
+  const subtotal = items.reduce((a, i) => a + Math.max(0, i.price), 0);
+  const total = Math.max(0, subtotal - (discount || 0));
+  const payloadItems = items.map((i) => ({ itemType: i.itemType, name: i.name, unitPrice: i.price, quantity: 1 }));
 
   return (
     <>
@@ -61,54 +60,61 @@ export function VisitedButton({
             </div>
             <p className="mb-3 text-xs text-zinc-500">{customerName} の会計として売上に登録します。メニュー・金額を確認してください。</p>
 
-            <div className="space-y-2">
-              {items.map((it, idx) => (
-                <div key={idx} className="grid grid-cols-12 items-center gap-2">
-                  <select
-                    value={it.itemType}
-                    onChange={(e) => upd(idx, { itemType: e.target.value as Item["itemType"] })}
-                    className={`${inputCls} col-span-3`}
-                  >
-                    <option value="service">技術</option>
-                    <option value="product">店販</option>
-                  </select>
-                  <input
-                    value={it.name}
-                    onChange={(e) => upd(idx, { name: e.target.value })}
-                    placeholder="品目名"
-                    className={`${inputCls} col-span-4`}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    value={it.unitPrice}
-                    onChange={(e) => upd(idx, { unitPrice: Number(e.target.value) || 0 })}
-                    className={`${inputCls} col-span-2`}
-                  />
-                  <input
-                    type="number"
-                    min={1}
-                    value={it.quantity}
-                    onChange={(e) => upd(idx, { quantity: Number(e.target.value) || 1 })}
-                    className={`${inputCls} col-span-2`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}
-                    className="col-span-1 text-xs text-red-500 hover:text-red-700"
-                    aria-label="明細を削除"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setItems((prev) => [...prev, { itemType: "service", name: "", unitPrice: 0, quantity: 1 }])}
-                className="text-xs text-blue-600 hover:underline"
+            {/* メニュー（表示のみ・削除可） */}
+            <div className="divide-y divide-zinc-100">
+              {items.length === 0 ? (
+                <p className="py-2 text-sm text-zinc-400">メニューがありません。下から追加してください。</p>
+              ) : (
+                items.map((it, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-3 py-2">
+                    <span className="text-sm text-zinc-800">{it.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-zinc-700">{yen(it.price)}</span>
+                      <button
+                        type="button"
+                        onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-xs text-red-500 hover:text-red-700"
+                        aria-label="削除"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* ＋ メニューを追加（登録メニューから選択） */}
+            <div className="mt-2">
+              <select
+                value=""
+                onChange={(e) => {
+                  const opt = menuOptions[Number(e.target.value)];
+                  if (opt) setItems((prev) => [...prev, { ...opt }]);
+                }}
+                className={`${inputCls} text-blue-600`}
+                disabled={menuOptions.length === 0}
               >
-                ＋ 明細を追加
-              </button>
+                <option value="">＋ メニューを追加</option>
+                {menuOptions.map((m, i) => (
+                  <option key={i} value={i}>{m.name}（{yen(m.price)}）</option>
+                ))}
+              </select>
+            </div>
+
+            {/* 割引金額（赤ラベル） */}
+            <div className="mt-3 flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm">
+                <span className="font-medium text-red-600">割引金額</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={discount}
+                  onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                  className={`${inputCls} w-28 text-right`}
+                />
+                <span className="text-xs text-zinc-400">円</span>
+              </label>
             </div>
 
             <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-3 text-sm">
@@ -119,7 +125,7 @@ export function VisitedButton({
             <form action={formAction} className="mt-3 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1 text-xs text-zinc-600">
-                  会計日<input type="date" name="date" required defaultValue={today} className={inputCls} />
+                  会計日<input type="date" name="date" required defaultValue={defaultDate} className={inputCls} />
                 </label>
                 <label className="flex flex-col gap-1 text-xs text-zinc-600">
                   支払方法
@@ -131,12 +137,13 @@ export function VisitedButton({
                   </select>
                 </label>
               </div>
-              <input type="hidden" name="items" value={JSON.stringify(validItems)} />
+              <input type="hidden" name="items" value={JSON.stringify(payloadItems)} />
+              <input type="hidden" name="discountAmount" value={String(discount || 0)} />
               {state.error ? <p className="text-xs text-red-600">{state.error}</p> : null}
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  disabled={pending || validItems.length === 0}
+                  disabled={pending || items.length === 0}
                   className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
                 >
                   {pending ? "登録中…" : "確定して売上に登録"}
