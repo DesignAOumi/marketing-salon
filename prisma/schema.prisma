@@ -262,6 +262,10 @@ model Settings {
   dataRetentionYears        Int @default(3) // 保持上限：最終来店からN年でアーカイブ候補（FR-PRIV-03）
   sessionIdleTimeoutMinutes Int @default(60) // 無操作自動ログアウト（FR-M0-03）
 
+  // 初回セットアップ・ウィザード（FR-M0-01）。完了するまでダッシュボード等はロック。
+  onboardingStep   Int       @default(0) // 完了済みステップ数（0=未開始）
+  setupCompletedAt DateTime? // セットアップ完了日時。null の間はオンボーディングへ誘導。
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

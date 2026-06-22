@@ -6,7 +6,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
-const PUBLIC_PATHS = ["/login", "/api/health"];
+// /setup は初回アカウント作成（認証前）を含むため公開。ページ側でステップごとに認証を判定する。
+const PUBLIC_PATHS = ["/login", "/setup", "/api/health"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

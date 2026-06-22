@@ -140,23 +140,28 @@ cp .env.example .env
 openssl rand -base64 48    # 出力を .env の AUTH_SECRET に貼り付け（セッション署名鍵）
 openssl rand -hex 32       # 出力を .env の ENCRYPTION_KEY に貼り付け（暗号化鍵・32バイト）
 
-# 4. 初回ログイン用の管理者を .env に設定
-#    ADMIN_EMAIL と ADMIN_PASSWORD を記入（例: ADMIN_EMAIL="owner@example.com"）
-
-# 5. 起動（初回はビルドのため数分）
+# 4. 起動（初回はビルドのため数分）
 docker compose up -d --build
 
-# 6. 動作確認（200 OK と {"status":"ok"} が返れば成功）
+# 5. 動作確認（200 OK と {"status":"ok"} が返れば成功）
 curl http://localhost:3000/api/health
 ```
 
-**起動時に自動で行われること**: DBスキーマの適用（`prisma migrate deploy`）→ 初期データ投入（サロン設定 + `.env` の管理者アカウント作成）。手動の初期化コマンドは不要です。
+**起動時に自動で行われること**: DBスキーマの適用（`prisma migrate deploy`）→ サロン設定の初期化。管理者アカウントは初回アクセス時に画面で作成します。手動の初期化コマンドは不要です。
 
-### ログイン
+### 初回セットアップ（ウィザード）
 
-ブラウザで **http://localhost:3000** を開き、`.env` に設定した `ADMIN_EMAIL` / `ADMIN_PASSWORD` でログインします。
+ブラウザで **http://localhost:3000** を開くと、初回は**セットアップ・ウィザード**が起動します。次の順に進め、すべて完了するとダッシュボードが使えるようになります。
 
-> 🔐 **本番運用では初回ログイン後にパスワードを変更**してください。パスワード変更画面は今後のフェーズで提供予定です。それまでは `.env` の `ADMIN_PASSWORD` を変更して `docker compose up -d` で再投入できます（シードは冪等です）。
+1. **アカウント作成**（管理者）
+2. **サロン情報**（サロン名・連絡先など）
+3. **顧客データ**（「サンプルを取り込む」ボタン、またはCSV取り込み）
+4. **メニュー登録**（標準メニュー一括追加も可）
+5. **AI連携**（既定はオフライン／任意でClaude APIキー）
+
+> 自動化したい場合のみ、`.env` に `ADMIN_EMAIL` / `ADMIN_PASSWORD` を設定すると起動時に管理者を作成し、アカウント作成ステップをスキップできます（任意）。
+>
+> 🔐 **本番運用ではパスワードを十分に強固なものに**してください。
 
 > 📦 顧客データは Docker の named volume `salon-var`（コンテナ内 `/app/var/salon.db`）にのみ保存され、リポジトリには一切含まれません。
 
