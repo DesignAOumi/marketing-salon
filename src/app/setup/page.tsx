@@ -36,7 +36,18 @@ export default async function SetupPage() {
     body = <CustomersStep customerCount={customerCount} />;
   } else if (step === 3) {
     const svc = await listServices();
-    body = <MenusStep services={svc.map((s) => ({ id: s.id, name: s.name, price: s.price, category: s.category }))} />;
+    body = (
+      <MenusStep
+        services={svc.map((s) => ({
+          id: s.id,
+          name: s.name,
+          price: s.price,
+          category: s.category,
+          durationMin: s.durationMin,
+          defaultCycleDays: s.defaultCycleDays,
+        }))}
+      />
+    );
   } else {
     body = <AiStep />;
   }

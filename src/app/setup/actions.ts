@@ -8,7 +8,7 @@ import { setSession, getSession } from "@/lib/auth";
 import { advanceTo, completeSetup } from "@/lib/onboarding";
 import { updateSalonInfo, setApiKey, DEFAULT_SHARED_FIELDS, getSettings } from "@/lib/settings";
 import { importSampleCustomers } from "@/lib/sample-data";
-import { createService, addDefaultServices, countServices } from "@/lib/services";
+import { createService, updateService, deleteService, countServices } from "@/lib/services";
 
 export type WizState = { error?: string; ok?: string };
 
@@ -95,9 +95,29 @@ export async function addServiceAction(_prev: WizState, formData: FormData): Pro
   return { ok: "メニューを追加しました。" };
 }
 
-export async function addDefaultServicesAction(): Promise<void> {
+export async function updateServiceAction(_prev: WizState, formData: FormData): Promise<WizState> {
   await requireSetupSession();
-  await addDefaultServices();
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  const price = Number(formData.get("price"));
+  if (!id) return { error: "対象が不明です。" };
+  if (!name) return { error: "メニュー名は必須です。" };
+  if (!Number.isFinite(price) || price < 0) return { error: "価格は0以上で入力してください。" };
+  await updateService(id, {
+    name,
+    price: Math.round(price),
+    category: String(formData.get("category") ?? "").trim() || null,
+    durationMin: Number(formData.get("durationMin")) || null,
+    defaultCycleDays: Number(formData.get("defaultCycleDays")) || null,
+  });
+  revalidatePath("/setup");
+  return { ok: "保存しました。" };
+}
+
+export async function deleteServiceAction(formData: FormData): Promise<void> {
+  await requireSetupSession();
+  const id = String(formData.get("id") ?? "");
+  if (id) await deleteService(id);
   revalidatePath("/setup");
 }
 

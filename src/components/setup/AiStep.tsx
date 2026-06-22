@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { finishSetupAction, type WizState } from "@/app/setup/actions";
+import { ApiKeyHelp } from "@/components/setup/ApiKeyHelp";
 
 const input = "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-zinc-500";
 const MODELS = ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"];
@@ -34,6 +35,9 @@ export function AiStep() {
 
       {mode === "connected" ? (
         <div className="grid grid-cols-1 gap-3 rounded-lg bg-zinc-50 p-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <ApiKeyHelp />
+          </div>
           <label className="flex flex-col gap-1 text-xs text-zinc-600">
             Claude APIキー
             <input name="apiKey" type="password" placeholder="sk-ant-..." className={input} />
