@@ -10,6 +10,7 @@ import { computeRfm, type RfmSegment } from "@/lib/rfm";
 import { cycleState as cycleStateOf, type CycleState } from "@/lib/cycle";
 import { parseRule, evaluateRule, type AdviceNode, type AdviceContext } from "@/lib/advice-dsl";
 import { formatDate } from "@/lib/format";
+import { composeRevisitMessage } from "@/lib/message-style";
 import catalogData from "../../data/advice-catalog.json";
 
 type CatalogItem = {
@@ -276,6 +277,27 @@ export async function getM6Targets(): Promise<M6Target[]> {
     if (inWindow && !cc.hasUpcomingReservation && cycleConfirmed && cc.consentToContact) {
       const advice = evaluateCatalog(cc, 5);
       const rv = advice.find((a) => a.id.startsWith("RV")) ?? advice[0] ?? null;
+      // 顧客向け文面は装飾エンジン（LINE準拠・組合せ）で生成。再提案で seed を変える。
+      const message = composeRevisitMessage(
+        {
+          name: cc.name,
+          lastService: cc.lastService,
+          nextDate: cc.nextPredictedVisitDate ? formatDate(cc.nextPredictedVisitDate) : null,
+          staff: cc.preferredStaffName,
+          overdue: cc.cycleState === "overdue",
+        },
+      );
+      const topAdvice: Advice = rv
+        ? { ...rv, customerMessage: message }
+        : {
+            id: "RV-OFFLINE",
+            category: "revisit",
+            title: "再来店のご案内",
+            priority: "高",
+            insight: "来店周期が近い/超過し、未予約・連絡同意あり。装飾済みの連絡文で再来店を後押しします。",
+            recommendedAction: "予約案を作成し、連絡文を送付。",
+            customerMessage: message,
+          };
       targets.push({
         id: cc.id,
         name: cc.name,
@@ -283,11 +305,28 @@ export async function getM6Targets(): Promise<M6Target[]> {
         cycleOverdueRatio: cc.cycleOverdueRatio,
         nextPredictedVisitDate: cc.nextPredictedVisitDate,
         lastService: cc.lastService,
-        topAdvice: rv,
+        topAdvice,
       });
     }
   }
   // 超過度の高い順（null は後ろ）
   targets.sort((a, b) => (b.cycleOverdueRatio ?? 0) - (a.cycleOverdueRatio ?? 0));
   return targets;
+}
+
+/** 連携なし「再提案」：別 seed で装飾メッセージを作り直す。 */
+export async function regenerateRevisitMessage(customerId: string, seed: number): Promise<string | null> {
+  const contexts = await buildAllContexts();
+  const cc = contexts.get(customerId);
+  if (!cc || !cc.consentToContact) return null;
+  return composeRevisitMessage(
+    {
+      name: cc.name,
+      lastService: cc.lastService,
+      nextDate: cc.nextPredictedVisitDate ? formatDate(cc.nextPredictedVisitDate) : null,
+      staff: cc.preferredStaffName,
+      overdue: cc.cycleState === "overdue",
+    },
+    seed,
+  );
 }

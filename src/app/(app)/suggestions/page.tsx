@@ -1,27 +1,53 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { getM6Targets } from "@/lib/advice";
+import { getSettings } from "@/lib/settings";
 import { formatDate, toDateInputValue } from "@/lib/format";
 import { CYCLE_STATE_LABEL } from "@/lib/cycle";
-import { CopyButton } from "@/components/CopyButton";
-import { createSuggestionReservationAction } from "./actions";
+import { SuggestionMessage } from "@/components/SuggestionMessage";
+import { createSuggestionReservationAction, regenerateSuggestionAction, toggleAiAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuggestionsPage() {
   await requireAuth();
-  const targets = await getM6Targets();
+  const [targets, settings] = await Promise.all([getM6Targets(), getSettings()]);
   const now = new Date();
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const apiReady = settings.aiMode === "connected" && !!settings.encryptedApiKey; // 連携済み（キー登録あり）
+  const aiActive = apiReady && settings.aiEnabled; // 実際にAI生成を使う
 
   return (
     <div className="mx-auto max-w-4xl">
       <header className="mb-6">
-        <h1 className="text-2xl font-bold text-zinc-900">再来店サイクル提案（M6）</h1>
+        <h1 className="text-2xl font-bold text-zinc-900">再来店サイクル提案</h1>
         <p className="mt-1 text-sm text-zinc-500">
           来店周期が近い／超過、かつ先の予約がなく、連絡同意のある顧客 {targets.length} 名。
-          外部送信ゼロ（オフライン）で生成。
+          {aiActive ? "Claude（連携あり）で生成。" : "外部送信ゼロ（オフライン）で生成。"}
         </p>
+
+        {/* AI連携の状態表示 + ON/OFF */}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {aiActive ? (
+            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">🔗 AI連携：ON（Claudeで生成）</span>
+          ) : apiReady ? (
+            <span className="rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-600">AI連携：OFF（オフライン生成中）</span>
+          ) : (
+            <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-500">オフライン生成（外部送信ゼロ）</span>
+          )}
+          {apiReady ? (
+            <form action={toggleAiAction}>
+              <button className="rounded-md border border-zinc-300 px-3 py-1 text-xs text-zinc-700 hover:bg-zinc-100">
+                {settings.aiEnabled ? "AI連携をOFFにする" : "AI連携をONにする"}
+              </button>
+            </form>
+          ) : (
+            <Link href="/settings" className="text-xs text-blue-600 hover:underline">
+              AI連携を設定する →
+            </Link>
+          )}
+        </div>
       </header>
 
       {targets.length === 0 ? (
@@ -68,14 +94,10 @@ export default async function SuggestionsPage() {
                       {t.topAdvice.insight}
                     </p>
                     {t.topAdvice.customerMessage ? (
-                      <div className="rounded-lg bg-zinc-50 p-3">
-                        <p className="whitespace-pre-wrap text-sm text-zinc-800">
-                          {t.topAdvice.customerMessage}
-                        </p>
-                        <div className="mt-2">
-                          <CopyButton text={t.topAdvice.customerMessage} />
-                        </div>
-                      </div>
+                      <SuggestionMessage
+                        initial={t.topAdvice.customerMessage}
+                        regenerate={regenerateSuggestionAction.bind(null, t.id)}
+                      />
                     ) : null}
                   </div>
                 ) : null}

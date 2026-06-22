@@ -3,10 +3,11 @@ import { getSession } from "@/lib/auth";
 import { getCurrentMonthSales } from "@/lib/sales";
 import { getM6Targets } from "@/lib/advice";
 import { formatYen } from "@/lib/format";
+import { AnalyticsSection } from "@/components/AnalyticsSection";
 
 export const dynamic = "force-dynamic";
 
-// サロンの状況サマリ(KPI)を表示する。導入チェックリストは設定画面へ移動。
+// サロンの状況サマリ(KPI)＋分析（M4）を一本化して表示する。導入チェックリストは設定画面へ。
 export default async function DashboardPage() {
   const session = await getSession();
 
@@ -32,10 +33,10 @@ export default async function DashboardPage() {
   }
 
   const kpis = [
-    { label: "総顧客数", value: customerCount === null ? "—" : `${customerCount}`, hint: "M1 / M4" },
-    { label: "当月売上", value: monthSales === null ? "—" : formatYen(monthSales), hint: "M2" },
-    { label: "予約件数", value: reservationCount === null ? "—" : `${reservationCount}`, hint: "M3" },
-    { label: "本日の再来店提案", value: m6Count === null ? "—" : `${m6Count}`, hint: "M6" },
+    { label: "総顧客数", value: customerCount === null ? "—" : `${customerCount}`, hint: "登録顧客" },
+    { label: "当月売上", value: monthSales === null ? "—" : formatYen(monthSales), hint: "今月の会計合計" },
+    { label: "予約件数", value: reservationCount === null ? "—" : `${reservationCount}`, hint: "今後の予約" },
+    { label: "本日の再来店提案", value: m6Count === null ? "—" : `${m6Count}`, hint: "要連絡の対象" },
   ];
 
   return (
@@ -68,6 +69,12 @@ export default async function DashboardPage() {
         ))}
       </section>
 
+      {!dbError ? (
+        <div className="mt-8">
+          <h2 className="mb-3 text-lg font-bold text-zinc-900">分析</h2>
+          <AnalyticsSection />
+        </div>
+      ) : null}
     </div>
   );
 }

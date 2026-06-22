@@ -10,6 +10,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getSettings, getDecryptedApiKey, DEFAULT_SHARED_FIELDS } from "@/lib/settings";
 import { getCustomerById } from "@/lib/customers";
 import { buildAllContexts, getAdviceForCustomer, type Advice } from "@/lib/advice";
+import { STYLE_GUIDE_RULES } from "@/lib/message-style";
 
 const SYSTEM_PROMPT = `あなたは日本の美容サロンの運営を支援するアシスタントです。
 提供された顧客データと「参考アドバイス（検証済みカタログ）」を踏まえ、その顧客向けに個別最適化した連絡文を作成します。
@@ -18,8 +19,11 @@ const SYSTEM_PROMPT = `あなたは日本の美容サロンの運営を支援す
 - 顧客の宛名は提供された name の値をそのまま使う（値が {{NAME}} の場合は出力にも {{NAME}} と記載する）。
 - customerMessage は敬体・自然な日本語で、そのまま送れる完成度にする。
 
-出力は次の3キーを持つ JSON オブジェクトのみ（前後に説明やコードフェンスを付けない）:
-{"insight": "サロン向けの気づき", "recommendedAction": "推奨アクション", "customerMessage": "顧客向け連絡文(敬体)"}`;
+# 文体・装飾ルール（LINE向け・スタイルガイド準拠 DesignAOumi/sns-message-style-guide）
+${STYLE_GUIDE_RULES}
+
+出力は次の3キーを持つ JSON オブジェクトのみ（前後に説明やコードフェンスを付けない）。customerMessage は上記の文体・装飾ルールに従った装飾済みの連絡文にすること:
+{"insight": "サロン向けの気づき", "recommendedAction": "推奨アクション", "customerMessage": "顧客向け連絡文(敬体・LINE装飾済み)"}`;
 
 /** モデル応答テキストから JSON オブジェクトを安全に抽出。 */
 function extractJson(text: string): { insight: string; recommendedAction: string; customerMessage: string } | null {

@@ -13,7 +13,6 @@ const NAV = [
   { href: "/customers", label: "顧客カルテ", enabled: true },
   { href: "/sales", label: "売上・購買", enabled: true },
   { href: "/reservations", label: "予約・来店サイクル", enabled: true },
-  { href: "/analytics", label: "分析ダッシュボード", enabled: true },
   { href: "/suggestions", label: "再来店提案", enabled: true },
   { href: "/data", label: "データ入出力", enabled: true },
   { href: "/settings", label: "設定", enabled: true },

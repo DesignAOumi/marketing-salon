@@ -41,7 +41,7 @@ export function GoogleCalendarButton({ connected }: { connected: boolean }) {
               認証情報を登録する必要があります。設定後、このボタンから連携を開始できるようになります。
             </p>
             <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-zinc-500">
-              <li>予約をGoogleカレンダーへ反映（M5）</li>
+              <li>予約をGoogleカレンダーへ反映</li>
               <li>認証情報は設定画面で登録します</li>
             </ul>
             <div className="mt-5 flex justify-end gap-2">
