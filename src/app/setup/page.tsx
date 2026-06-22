@@ -4,6 +4,7 @@ import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import { listServices } from "@/lib/services";
 import { getOnboarding, ONBOARDING_STEPS, TOTAL_STEPS } from "@/lib/onboarding";
+import { goBackAction } from "./actions";
 import { AccountStep } from "@/components/setup/AccountStep";
 import { SalonStep } from "@/components/setup/SalonStep";
 import { CustomersStep } from "@/components/setup/CustomersStep";
@@ -76,6 +77,14 @@ export default async function SetupPage() {
       </ol>
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">{body}</div>
+
+      {step >= 2 ? (
+        <form action={goBackAction} className="mt-3">
+          <button type="submit" className="text-sm text-zinc-500 hover:text-zinc-800">
+            ← 前のステップに戻る
+          </button>
+        </form>
+      ) : null}
 
       <p className="mt-4 text-center text-xs text-zinc-400">
         ステップ {step + 1} / {TOTAL_STEPS}・すべて完了するとダッシュボードが使えるようになります。

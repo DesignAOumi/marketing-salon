@@ -1,5 +1,6 @@
 import { ImportPanel } from "@/components/ImportPanel";
 import { importSampleAction, advanceCustomersAction } from "@/app/setup/actions";
+import { PendingButton } from "@/components/setup/PendingButton";
 
 // サーバーコンポーネント。サンプル取り込み / CSV取り込み / 次へ。
 export function CustomersStep({ customerCount }: { customerCount: number }) {
@@ -14,14 +15,20 @@ export function CustomersStep({ customerCount }: { customerCount: number }) {
         <p className="mt-1 text-xs text-zinc-500">
           架空の顧客（来店・売上つき・約100名）を取り込みます。来店サイクルや分析・再来店提案をすぐ確認できます。
         </p>
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex flex-wrap items-center gap-3">
           <form action={importSampleAction}>
-            <button className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">
+            <PendingButton
+              pendingText="取り込み中…"
+              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-70"
+            >
               サンプル顧客を取り込む
-            </button>
+            </PendingButton>
           </form>
           <span className="text-sm text-zinc-500">現在の顧客数: {customerCount} 名</span>
         </div>
+        <p className="mt-2 text-xs text-zinc-400">
+          ※ 100名分の来店・売上を生成するため、完了まで数秒〜十数秒かかります。そのままお待ちください。
+        </p>
       </div>
 
       <details className="rounded-lg border border-zinc-200 p-4">
@@ -33,9 +40,12 @@ export function CustomersStep({ customerCount }: { customerCount: number }) {
       </details>
 
       <form action={advanceCustomersAction}>
-        <button className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700">
+        <PendingButton
+          pendingText="進んでいます…"
+          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-70"
+        >
           次へ
-        </button>
+        </PendingButton>
       </form>
       <p className="text-xs text-zinc-400">※ 顧客は後からいつでも追加できます。サンプルは設定後に個別削除も可能です。</p>
     </div>

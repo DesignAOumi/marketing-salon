@@ -6,11 +6,20 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import { setSession, getSession } from "@/lib/auth";
 import { advanceTo, completeSetup } from "@/lib/onboarding";
-import { updateSalonInfo, setApiKey, DEFAULT_SHARED_FIELDS } from "@/lib/settings";
+import { updateSalonInfo, setApiKey, DEFAULT_SHARED_FIELDS, getSettings } from "@/lib/settings";
 import { importSampleCustomers } from "@/lib/sample-data";
 import { createService, addDefaultServices, countServices } from "@/lib/services";
 
 export type WizState = { error?: string; ok?: string };
+
+// 前のステップへ戻る（onboardingStep を1つ戻す。最小はサロン情報=1）。
+export async function goBackAction(): Promise<void> {
+  await requireSetupSession();
+  const s = await getSettings();
+  const target = Math.max(1, s.onboardingStep - 1);
+  await prisma.settings.update({ where: { id: "singleton" }, data: { onboardingStep: target } });
+  redirect("/setup");
+}
 
 async function requireSetupSession() {
   const s = await getSession();
