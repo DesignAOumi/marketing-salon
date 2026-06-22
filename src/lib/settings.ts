@@ -47,8 +47,14 @@ export async function getSettingsView() {
     dataRetentionYears: s.dataRetentionYears,
     sessionIdleTimeoutMinutes: s.sessionIdleTimeoutMinutes,
     aiSharedFields: s.aiSharedFields ? (JSON.parse(s.aiSharedFields) as string[]) : DEFAULT_SHARED_FIELDS,
+    themeColor: s.themeColor,
     hasApiKey: !!s.encryptedApiKey,
   };
+}
+
+export async function updateTheme(themeColor: string) {
+  await getSettings();
+  return prisma.settings.update({ where: { id: "singleton" }, data: { themeColor } });
 }
 
 export async function updateSalonInfo(data: {

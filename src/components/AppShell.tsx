@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { themeBg } from "@/lib/theme";
 
 type Session = { name: string; email: string | null; role: string };
 
@@ -20,10 +21,14 @@ const NAV = [
 
 export function AppShell({
   session,
+  appTitle,
+  theme,
   logout,
   children,
 }: {
   session: Session;
+  appTitle: string;
+  theme: string;
   logout: () => Promise<void>;
   children: React.ReactNode;
 }) {
@@ -33,7 +38,7 @@ export function AppShell({
   const SidebarContent = (
     <div className="flex h-full flex-col">
       <div className="border-b border-zinc-200 px-5 py-4">
-        <p className="text-sm font-bold text-zinc-900">サロン顧客管理</p>
+        <p className="text-sm font-bold leading-snug text-zinc-900">{appTitle}</p>
         <p className="text-xs text-zinc-400">セルフホスト / v0.1</p>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
@@ -113,9 +118,9 @@ export function AppShell({
           >
             ☰
           </button>
-          <span className="text-sm font-bold text-zinc-900">サロン顧客管理</span>
+          <span className="truncate text-sm font-bold text-zinc-900">{appTitle}</span>
         </header>
-        <main className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className={`flex-1 overflow-auto p-4 sm:p-6 lg:p-8 ${themeBg(theme)}`}>{children}</main>
       </div>
     </div>
   );

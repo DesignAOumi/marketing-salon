@@ -5,10 +5,12 @@ import { requireAuth } from "@/lib/auth";
 import {
   updateSalonInfo,
   updateAiSettings,
+  updateTheme,
   setApiKey,
   clearApiKey,
   SHAREABLE_FIELDS,
 } from "@/lib/settings";
+import { isThemeKey } from "@/lib/theme";
 import { testConnection } from "@/lib/anthropic-advice";
 
 export type SettingsState = { error?: string; ok?: string };
@@ -33,8 +35,21 @@ export async function saveSalonInfoAction(
     timezone: String(formData.get("timezone") ?? "Asia/Tokyo").trim() || "Asia/Tokyo",
     currency: String(formData.get("currency") ?? "JPY").trim() || "JPY",
   });
-  revalidatePath("/settings");
+  // タイトルにサロン名を反映するためレイアウトも再検証。
+  revalidatePath("/", "layout");
   return { ok: "サロン情報を保存しました。" };
+}
+
+export async function saveThemeAction(
+  _prev: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const err = await ensureOwner();
+  if (err) return { error: err };
+  const theme = String(formData.get("themeColor") ?? "zinc");
+  await updateTheme(isThemeKey(theme) ? theme : "zinc");
+  revalidatePath("/", "layout");
+  return { ok: "背景テーマを保存しました。" };
 }
 
 export async function saveAiSettingsAction(

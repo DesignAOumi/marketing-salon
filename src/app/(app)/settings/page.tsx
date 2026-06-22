@@ -5,6 +5,7 @@ import { SetupChecklist } from "@/components/SetupChecklist";
 import {
   saveSalonInfoAction,
   saveAiSettingsAction,
+  saveThemeAction,
   saveApiKeyAction,
   clearApiKeyAction,
   testConnectionAction,
@@ -35,14 +36,20 @@ export default async function SettingsPage() {
         fields={SHAREABLE_FIELDS.map((f) => ({ key: f.key, label: f.label, pii: f.pii }))}
         saveSalonInfo={saveSalonInfoAction}
         saveAiSettings={saveAiSettingsAction}
+        saveTheme={saveThemeAction}
         saveApiKey={saveApiKeyAction}
         clearApiKey={clearApiKeyAction}
         testConnection={testConnectionAction}
       />
 
-      <div className="mt-8">
-        <SetupChecklist />
-      </div>
+      <details className="mt-4 rounded-xl border border-zinc-200 bg-white p-5">
+        <summary className="cursor-pointer select-none text-sm font-semibold text-zinc-800 [&::-webkit-details-marker]:hidden">
+          導入チェックリスト
+        </summary>
+        <div className="mt-4">
+          <SetupChecklist />
+        </div>
+      </details>
     </div>
   );
 }

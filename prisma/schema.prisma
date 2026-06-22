@@ -277,6 +277,8 @@ model Settings {
   onboardingStep   Int       @default(0) // 完了済みステップ数（0=未開始）
   setupCompletedAt DateTime? // セットアップ完了日時。null の間はオンボーディングへ誘導。
 
+  themeColor String @default("zinc") // 背景テーマカラー（lib/theme の key）
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
