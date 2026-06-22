@@ -8,7 +8,7 @@ export const THEMES = [
   { key: "amber", label: "アンバー", bg: "bg-amber-100", header: "bg-amber-200", swatch: "bg-amber-400" },
   { key: "violet", label: "パープル", bg: "bg-violet-100", header: "bg-violet-200", swatch: "bg-violet-400" },
   { key: "sky", label: "スカイ", bg: "bg-sky-100", header: "bg-sky-200", swatch: "bg-sky-400" },
-  { key: "stone", label: "ベージュ", bg: "bg-stone-100", header: "bg-stone-200", swatch: "bg-stone-300" },
+  { key: "stone", label: "ベージュ", bg: "bg-[#FFE6CE]", header: "bg-[#f5cfab]", swatch: "bg-[#f5cfab]" },
 ] as const;
 
 export type ThemeKey = (typeof THEMES)[number]["key"];
