@@ -3,11 +3,11 @@ import { getSession } from "@/lib/auth";
 import { getCurrentMonthSales } from "@/lib/sales";
 import { getM6Targets } from "@/lib/advice";
 import { formatYen } from "@/lib/format";
+import { SetupChecklist } from "@/components/SetupChecklist";
 
 export const dynamic = "force-dynamic";
 
-// Phase 0: ダッシュボード「枠」。DB接続を確認しつつ主要KPIのプレースホルダを表示する。
-// 実データの集計（FR-M4-01 等）は Phase 1〜2 で実装する。
+// サロンの状況サマリ(KPI)と、導入セットアップの進捗(自動判定)を表示する。
 export default async function DashboardPage() {
   const session = await getSession();
 
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-bold text-zinc-900">ダッシュボード</h1>
         <p className="mt-1 text-sm text-zinc-500">
-          ようこそ、{session?.name || session?.email} さん。これは Phase 0 の初期画面枠です。
+          ようこそ、{session?.name || session?.email} さん。サロンの状況と導入の進捗を確認できます。
         </p>
       </header>
 
@@ -69,17 +69,7 @@ export default async function DashboardPage() {
         ))}
       </section>
 
-      <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-zinc-800">実装ロードマップ</h2>
-        <ol className="mt-3 space-y-1 text-sm text-zinc-600">
-          <li>Phase 0 — 雛形・Docker・DBスキーマ（現在地）</li>
-          <li>Phase 1 — M1顧客カルテ ＋ M2売上・購買</li>
-          <li>Phase 2 — M3来店サイクル ＋ M4分析</li>
-          <li>Phase 3 — M6再来店提案 ＋ 連携なしアドバイス（MVP到達点）</li>
-          <li>Phase 4 — M5 GCal連携 ＋ 連携ありAI</li>
-          <li>Phase 5 — OSS公開整備</li>
-        </ol>
-      </section>
+      <div className="mt-8">{!dbError ? <SetupChecklist /> : null}</div>
     </div>
   );
 }
