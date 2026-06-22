@@ -42,7 +42,16 @@ function parseAllergies(v: string | null): string[] {
 export type CustomerListParams = {
   q?: string;
   status?: "new" | "repeat" | "dormant";
-  sort?: "recent" | "name" | "registered";
+  sort?: string;
+  visitMin?: number;
+  visitMax?: number;
+  lastFrom?: Date;
+  lastTo?: Date;
+  salesMin?: number;
+  salesMax?: number;
+  avgMin?: number;
+  avgMax?: number;
+  consent?: "yes" | "no";
   page?: number;
   pageSize?: number;
 };
@@ -50,43 +59,93 @@ export type CustomerListParams = {
 export async function listCustomers(params: CustomerListParams = {}) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
-  const where: Prisma.CustomerWhereInput = { deletedAt: null };
 
+  // DB で絞れる条件（状態・検索・来店回数・最終来店・累計売上・連絡同意）。
+  const where: Prisma.CustomerWhereInput = { deletedAt: null };
   if (params.q && params.q.trim()) {
     const q = params.q.trim();
     where.OR = [{ name: { contains: q } }, { nameKana: { contains: q } }];
   }
   if (params.status) where.status = params.status;
+  if (params.consent === "yes") where.consentToContact = true;
+  else if (params.consent === "no") where.consentToContact = false;
+  if (params.visitMin != null || params.visitMax != null) {
+    where.visitCount = {
+      ...(params.visitMin != null ? { gte: params.visitMin } : {}),
+      ...(params.visitMax != null ? { lte: params.visitMax } : {}),
+    };
+  }
+  if (params.salesMin != null || params.salesMax != null) {
+    where.totalSales = {
+      ...(params.salesMin != null ? { gte: params.salesMin } : {}),
+      ...(params.salesMax != null ? { lte: params.salesMax } : {}),
+    };
+  }
+  if (params.lastFrom || params.lastTo) {
+    where.lastVisitDate = {
+      ...(params.lastFrom ? { gte: params.lastFrom } : {}),
+      ...(params.lastTo ? { lte: params.lastTo } : {}),
+    };
+  }
 
-  // SQLite は orderBy の nulls 指定を未サポート。DESC では NULL（未来店）が末尾に来るため既定で意図どおり。
-  const orderBy: Prisma.CustomerOrderByWithRelationInput =
-    params.sort === "name"
-      ? { nameKana: "asc" }
-      : params.sort === "registered"
-        ? { registeredAt: "desc" }
-        : { lastVisitDate: "desc" };
+  // 平均売上単価は計算列のため、絞り込み後の全件を取得して in-memory で評価/整列/分頁する。
+  const all = await prisma.customer.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      nameKana: true,
+      status: true,
+      visitCount: true,
+      lastVisitDate: true,
+      avgVisitIntervalDays: true,
+      totalSales: true,
+      consentToContact: true,
+    },
+  });
 
-  const [rows, total] = await Promise.all([
-    prisma.customer.findMany({
-      where,
-      orderBy,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: {
-        id: true,
-        name: true,
-        nameKana: true,
-        status: true,
-        visitCount: true,
-        lastVisitDate: true,
-        avgVisitIntervalDays: true,
-        totalSales: true,
-        consentToContact: true,
-      },
-    }),
-    prisma.customer.count({ where }),
-  ]);
+  let list = all.map((c) => ({
+    ...c,
+    avgSpend: c.visitCount > 0 ? Math.round(c.totalSales / c.visitCount) : 0,
+  }));
+  if (params.avgMin != null) list = list.filter((c) => c.avgSpend >= params.avgMin!);
+  if (params.avgMax != null) list = list.filter((c) => c.avgSpend <= params.avgMax!);
 
+  const cmpDate = (a: Date | null, b: Date | null, dir: 1 | -1) => {
+    const av = a ? a.getTime() : null;
+    const bv = b ? b.getTime() : null;
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1; // 未来店は常に末尾
+    if (bv === null) return -1;
+    return (av - bv) * dir;
+  };
+  const sort = params.sort ?? "last_desc";
+  list.sort((a, b) => {
+    switch (sort) {
+      case "kana":
+        return (a.nameKana ?? a.name).localeCompare(b.nameKana ?? b.name, "ja");
+      case "visit_asc":
+        return a.visitCount - b.visitCount;
+      case "visit_desc":
+        return b.visitCount - a.visitCount;
+      case "last_asc":
+        return cmpDate(a.lastVisitDate, b.lastVisitDate, 1);
+      case "sales_asc":
+        return a.totalSales - b.totalSales;
+      case "sales_desc":
+        return b.totalSales - a.totalSales;
+      case "avg_asc":
+        return a.avgSpend - b.avgSpend;
+      case "avg_desc":
+        return b.avgSpend - a.avgSpend;
+      case "last_desc":
+      default:
+        return cmpDate(a.lastVisitDate, b.lastVisitDate, -1);
+    }
+  });
+
+  const total = list.length;
+  const rows = list.slice((page - 1) * pageSize, page * pageSize);
   return { rows, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) };
 }
 
