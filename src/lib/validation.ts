@@ -6,6 +6,15 @@ const emptyToUndef = (v: unknown) =>
 
 const optionalStr = z.preprocess(emptyToUndef, z.string().trim().optional());
 
+// 複数回答があり得る項目（髪質・肌質・アレルギー等）を文字列配列へ正規化。
+// 区切りは ; , 、 改行 のいずれでも可。空要素は除去し、空なら undefined。
+const multiList = z.preprocess((v) => {
+  if (Array.isArray(v)) return v;
+  if (typeof v !== "string") return v;
+  const arr = v.split(/[,;\n、]/).map((s) => s.trim()).filter(Boolean);
+  return arr.length ? arr : undefined;
+}, z.array(z.string().max(100)).max(50).optional());
+
 export const genderValues = ["male", "female", "other", "unknown"] as const;
 
 export const customerInputSchema = z.object({
@@ -30,18 +39,10 @@ export const customerInputSchema = z.object({
     emptyToUndef,
     z.string().trim().email("メールアドレスの形式が正しくありません").optional(),
   ),
-  hairType: optionalStr,
-  skinType: optionalStr,
-  // カンマ/改行区切りの入力を配列へ。空要素は除去。
-  allergies: z.preprocess((v) => {
-    if (Array.isArray(v)) return v;
-    if (typeof v !== "string") return v;
-    const arr = v
-      .split(/[,;\n、]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    return arr.length ? arr : undefined;
-  }, z.array(z.string().max(100)).max(50).optional()),
+  // 髪質・肌質・アレルギーは複数値（配列）。区切りは ; , 、 改行。
+  hairType: multiList,
+  skinType: multiList,
+  allergies: multiList,
   preferences: optionalStr,
   notes: optionalStr,
   preferredStaffId: optionalStr,

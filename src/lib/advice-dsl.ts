@@ -267,10 +267,11 @@ export function evaluateRule(ast: AdviceNode, ctx: AdviceContext): boolean {
       }
       if (l === null || l === undefined || r === null || r === undefined) return false;
       switch (ast.op) {
+        // 複数値（配列）フィールドは「いずれかが一致」を意味する（hairType=="くせ毛" 等）。
         case "==":
-          return l === r;
+          return Array.isArray(l) ? l.includes(r) : l === r;
         case "!=":
-          return l !== r;
+          return Array.isArray(l) ? !l.includes(r) : l !== r;
         case ">":
           return typeof l === "number" && typeof r === "number" && l > r;
         case ">=":
@@ -285,7 +286,9 @@ export function evaluateRule(ast: AdviceNode, ctx: AdviceContext): boolean {
     case "in": {
       const l = evalOperand(ast.left, ctx);
       if (l === null || l === undefined) return false;
-      return ast.values.map((v) => evalOperand(v, ctx)).includes(l);
+      const vals = ast.values.map((v) => evalOperand(v, ctx));
+      // 配列フィールドは集合の交差（いずれかの要素が候補に含まれる）で判定。
+      return Array.isArray(l) ? vals.some((v) => l.includes(v)) : vals.includes(l);
     }
     case "between": {
       const l = evalOperand(ast.left, ctx);

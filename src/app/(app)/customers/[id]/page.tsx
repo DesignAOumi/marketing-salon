@@ -84,8 +84,8 @@ export default async function CustomerDetailPage({
     { label: "電話", value: customer.phone ?? "—" },
     { label: "メール", value: customer.email ?? "—" },
     { label: "担当", value: customer.preferredStaff?.name ?? "—" },
-    { label: "髪質", value: customer.hairType ?? "—" },
-    { label: "肌質", value: customer.skinType ?? "—" },
+    { label: "髪質", value: customer.hairTypeList.length ? customer.hairTypeList.join("、") : "—" },
+    { label: "肌質（頭皮）", value: customer.skinTypeList.length ? customer.skinTypeList.join("、") : "—" },
   ];
 
   return (

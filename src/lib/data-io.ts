@@ -58,8 +58,8 @@ type ExportRow = {
   birthday: string;
   phone: string;
   email: string;
-  hairType: string;
-  skinType: string;
+  hairType: string[];
+  skinType: string[];
   allergies: string[];
   preferences: string;
   notes: string;
@@ -79,8 +79,8 @@ async function getExportRows(): Promise<ExportRow[]> {
     birthday: c.birthday ? toDateInputValue(c.birthday) : "",
     phone: dec(c.phone),
     email: dec(c.email),
-    hairType: c.hairType ?? "",
-    skinType: c.skinType ?? "",
+    hairType: parseAllergies(c.hairType),
+    skinType: parseAllergies(c.skinType),
     allergies: parseAllergies(c.allergies),
     preferences: c.preferences ?? "",
     notes: c.notes ?? "",
@@ -94,10 +94,15 @@ export async function exportCustomersJson(): Promise<string> {
   return JSON.stringify(rows, null, 2);
 }
 
-/** CSV エクスポート（allergies は ";" 区切り、UTF-8 BOM 付与で Excel 互換）。 */
+/** CSV エクスポート（複数値項目は ";" 区切り、UTF-8 BOM 付与で Excel 互換）。 */
 export async function exportCustomersCsv(): Promise<string> {
   const rows = await getExportRows();
-  const flat = rows.map((r) => ({ ...r, allergies: r.allergies.join(";") }));
+  const flat = rows.map((r) => ({
+    ...r,
+    hairType: r.hairType.join(";"),
+    skinType: r.skinType.join(";"),
+    allergies: r.allergies.join(";"),
+  }));
   return "﻿" + toCsv([...CUSTOMER_COLUMNS], flat);
 }
 

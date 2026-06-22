@@ -123,11 +123,11 @@ export function CustomerForm({
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="髪質" name="hairType" error={fe.hairType}>
-          <input name="hairType" defaultValue={d.hairType} className={inputCls} />
+        <Field label="髪質" name="hairType" error={fe.hairType} hint="カンマ・; 区切りで複数入力可（例: くせ毛, 乾燥毛）">
+          <textarea name="hairType" rows={2} defaultValue={d.hairType} className={inputCls} />
         </Field>
-        <Field label="肌質" name="skinType" error={fe.skinType}>
-          <input name="skinType" defaultValue={d.skinType} className={inputCls} />
+        <Field label="肌質（頭皮）" name="skinType" error={fe.skinType} hint="カンマ・; 区切りで複数入力可（例: 敏感肌, 乾燥）">
+          <textarea name="skinType" rows={2} defaultValue={d.skinType} className={inputCls} />
         </Field>
         <Field
           label="アレルギー・禁忌"

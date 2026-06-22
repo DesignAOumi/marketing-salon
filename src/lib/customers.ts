@@ -108,6 +108,8 @@ export async function getCustomerById(id: string) {
     phone: decField(c.phone),
     email: decField(c.email),
     allergiesList: parseAllergies(c.allergies),
+    hairTypeList: parseAllergies(c.hairType),
+    skinTypeList: parseAllergies(c.skinType),
   };
 }
 
@@ -120,8 +122,8 @@ function toData(input: CustomerInput) {
     birthday: input.birthday ? new Date(input.birthday + "T00:00:00Z") : null,
     phone: encField(input.phone),
     email: encField(input.email),
-    hairType: input.hairType ?? null,
-    skinType: input.skinType ?? null,
+    hairType: input.hairType && input.hairType.length ? JSON.stringify(input.hairType) : null,
+    skinType: input.skinType && input.skinType.length ? JSON.stringify(input.skinType) : null,
     allergies: input.allergies && input.allergies.length ? JSON.stringify(input.allergies) : null,
     preferences: input.preferences ?? null,
     notes: input.notes ?? null,

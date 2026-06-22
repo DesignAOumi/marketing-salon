@@ -12,7 +12,7 @@ export function CustomersStep({ customerCount }: { customerCount: number }) {
       <div className="rounded-lg border border-zinc-200 p-4">
         <p className="text-sm font-medium text-zinc-800">サンプルで試す</p>
         <p className="mt-1 text-xs text-zinc-500">
-          架空の顧客（来店・売上つき・約24名）を取り込みます。来店サイクルや分析・再来店提案をすぐ確認できます。
+          架空の顧客（来店・売上つき・約100名）を取り込みます。来店サイクルや分析・再来店提案をすぐ確認できます。
         </p>
         <div className="mt-3 flex items-center gap-3">
           <form action={importSampleAction}>

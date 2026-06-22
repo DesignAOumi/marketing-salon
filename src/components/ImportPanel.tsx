@@ -52,8 +52,9 @@ export function ImportPanel() {
         <p className="mt-1 leading-relaxed">
           列: <code>id</code>, <code>name</code>(氏名・必須), <code>nameKana</code>,{" "}
           <code>gender</code>(female/male/other), <code>birthday</code>(YYYY-MM-DD),{" "}
-          <code>phone</code>, <code>email</code>, <code>hairType</code>, <code>skinType</code>,{" "}
-          <code>allergies</code>(<code>;</code> 区切り), <code>preferences</code>, <code>notes</code>,{" "}
+          <code>phone</code>, <code>email</code>, <code>hairType</code>(複数可・<code>;</code> 区切り),{" "}
+          <code>skinType</code>(複数可・<code>;</code> 区切り), <code>allergies</code>(複数可・<code>;</code> 区切り),{" "}
+          <code>preferences</code>, <code>notes</code>,{" "}
           <code>consentToContact</code>(true/false)。<code>id</code> を空欄にすると新規、既存の id を入れると上書き更新します。
         </p>
       </div>

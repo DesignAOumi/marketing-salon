@@ -58,7 +58,7 @@ export async function saveSalonAction(_prev: WizState, formData: FormData): Prom
 // ── ③ 顧客データ（サンプル取り込み / スキップ）──────────────
 export async function importSampleAction(): Promise<void> {
   await requireSetupSession();
-  await importSampleCustomers(24);
+  await importSampleCustomers(100);
   revalidatePath("/setup");
 }
 

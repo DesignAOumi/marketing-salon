@@ -7,11 +7,16 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 
 const DAY = 86_400_000;
-const SURNAMES = [["佐藤","サトウ"],["鈴木","スズキ"],["高橋","タカハシ"],["田中","タナカ"],["渡辺","ワタナベ"],["伊藤","イトウ"],["山本","ヤマモト"],["中村","ナカムラ"],["小林","コバヤシ"],["加藤","カトウ"],["吉田","ヨシダ"],["山田","ヤマダ"],["松本","マツモト"],["井上","イノウエ"],["木村","キムラ"],["清水","シミズ"]];
-const GIVEN_F = [["美咲","ミサキ"],["陽子","ヨウコ"],["さくら","サクラ"],["結衣","ユイ"],["愛","アイ"],["優花","ユウカ"],["彩","アヤ"],["七海","ナナミ"],["莉子","リコ"],["麻衣","マイ"]];
-const GIVEN_M = [["翔","ショウ"],["健一","ケンイチ"],["大輔","ダイスケ"],["涼太","リョウタ"],["蓮","レン"],["駿","シュン"],["和也","カズヤ"],["大樹","ダイキ"]];
-const MENUS = ["カット", "カラー", "パーマ", "トリートメント", "ヘッドスパ"];
+// 架空の氏名プール（[漢字, カナ]）。100名でも重複なく自然に分散するよう十分な数を確保。
+const SURNAMES = [["佐藤","サトウ"],["鈴木","スズキ"],["高橋","タカハシ"],["田中","タナカ"],["渡辺","ワタナベ"],["伊藤","イトウ"],["山本","ヤマモト"],["中村","ナカムラ"],["小林","コバヤシ"],["加藤","カトウ"],["吉田","ヨシダ"],["山田","ヤマダ"],["佐々木","ササキ"],["山口","ヤマグチ"],["松本","マツモト"],["井上","イノウエ"],["木村","キムラ"],["林","ハヤシ"],["清水","シミズ"],["山崎","ヤマザキ"],["森","モリ"],["池田","イケダ"],["橋本","ハシモト"],["阿部","アベ"],["石川","イシカワ"],["前田","マエダ"],["藤田","フジタ"],["後藤","ゴトウ"],["岡田","オカダ"],["長谷川","ハセガワ"]];
+const GIVEN_F = [["美咲","ミサキ"],["陽子","ヨウコ"],["さくら","サクラ"],["葵","アオイ"],["結衣","ユイ"],["愛","アイ"],["杏","アン"],["真由","マユ"],["千尋","チヒロ"],["優花","ユウカ"],["彩","アヤ"],["七海","ナナミ"],["莉子","リコ"],["美穂","ミホ"],["直美","ナオミ"],["遥","ハルカ"],["美月","ミツキ"],["麻衣","マイ"],["香織","カオリ"],["恵","メグミ"]];
+const GIVEN_M = [["翔","ショウ"],["健一","ケンイチ"],["大輔","ダイスケ"],["直樹","ナオキ"],["涼太","リョウタ"],["拓海","タクミ"],["蓮","レン"],["陸","リク"],["駿","シュン"],["亮","リョウ"],["健太","ケンタ"],["和也","カズヤ"],["翔太","ショウタ"],["大樹","ダイキ"],["悠斗","ユウト"],["颯","ハヤテ"],["智也","トモヤ"],["浩二","コウジ"],["誠","マコト"],["徹","トオル"]];
+const MENUS = ["カット", "カラー", "パーマ", "縮毛矯正", "トリートメント", "ヘッドスパ"];
 const STATES = ["vip","active","approaching","overdue","overdue","at_risk","dormant","new"];
+// 複数値項目のプール（多くの顧客に複数値を持たせ、複数記入の記載方法を学べるようにする）。
+const HAIR = ["くせ毛", "直毛", "軟毛", "硬毛", "乾燥毛", "ダメージ毛", "細毛", "多毛", "エイジング毛"];
+const SKIN = ["敏感肌", "乾燥", "脂性", "普通", "混合肌", "赤み"];
+const ALLERGY_POOL = ["ジアミン", "香料", "パラベン", "ラテックス", "アルコール"];
 
 export async function countSampleCustomers() {
   return prisma.customer.count({ where: { notes: { startsWith: "[サンプル]" }, deletedAt: null } });
@@ -21,13 +26,18 @@ export async function clearSampleCustomers() {
   return prisma.customer.deleteMany({ where: { notes: { startsWith: "[サンプル]" } } });
 }
 
-/** サンプル顧客を生成して取り込む（既定24名）。既存サンプルがあれば置き換える。 */
-export async function importSampleCustomers(count = 24): Promise<number> {
+/** サンプル顧客を生成して取り込む（既定100名）。既存サンプルがあれば置き換える。 */
+export async function importSampleCustomers(count = 100): Promise<number> {
   await clearSampleCustomers();
   const now = Date.now();
   const ri = (a: number, b: number) => Math.floor(Math.random() * (b - a + 1)) + a;
   const rf = (a: number, b: number) => Math.random() * (b - a) + a;
   const pick = <T,>(a: T[]): T => a[Math.floor(Math.random() * a.length)];
+  const subset = <T,>(a: T[], n: number): T[] => {
+    const c = [...a];
+    for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; }
+    return c.slice(0, n);
+  };
   const med = (a: number[]) => { const s = [...a].sort((x, y) => x - y); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
   const used = new Set<string>();
   const name = (g: string) => {
@@ -46,6 +56,10 @@ export async function importSampleCustomers(count = 24): Promise<number> {
     const interval = ri(26, 44);
     const menu = pick(MENUS);
     const retailRatio = Math.random() < 0.5 ? rf(0.05, 0.25) : 0;
+    // 複数値項目（多くは複数、一部は単一/なし）。
+    const hairTypes = subset(HAIR, ri(1, 3));
+    const skinTypes = subset(SKIN, ri(1, 2));
+    const allergies = Math.random() < 0.4 ? subset(ALLERGY_POOL, ri(1, 2)) : [];
 
     let n, lastAgo, base, consent, resv = null;
     if (state === "vip") { n = ri(6, 9); lastAgo = interval * rf(0.2, 0.7); base = ri(14000, 24000); consent = true; }
@@ -71,6 +85,9 @@ export async function importSampleCustomers(count = 24): Promise<number> {
         name: nm, nameKana: kana, gender, consentToContact: consent,
         consentUpdatedAt: consent ? new Date() : null,
         notes: "[サンプル] 体験用の架空データ",
+        hairType: JSON.stringify(hairTypes),
+        skinType: JSON.stringify(skinTypes),
+        allergies: allergies.length ? JSON.stringify(allergies) : null,
         visitCount: n, firstVisitDate: dates[0], lastVisitDate: last,
         avgVisitIntervalDays: avg, nextPredictedVisitDate: pred, status,
       },

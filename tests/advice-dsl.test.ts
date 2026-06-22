@@ -49,6 +49,20 @@ describe("advice DSL engine (§C, missing-safe)", () => {
     expect(evalRuleString("(a==1 || b==2) && c==3", { ...T, a: 9, b: 9, c: 3 })).toBe(false);
   });
 
+  it("複数値フィールド: == は配列メンバーシップ（いずれか一致）", () => {
+    // 髪質・肌質・アレルギー等は配列。hairType=="くせ毛" は「含む」を意味する。
+    expect(evalRuleString('hairType=="くせ毛"', { ...T, hairType: ["くせ毛", "乾燥毛"] })).toBe(true);
+    expect(evalRuleString('hairType=="直毛"', { ...T, hairType: ["くせ毛", "乾燥毛"] })).toBe(false);
+    expect(evalRuleString('hairType!="直毛"', { ...T, hairType: ["くせ毛", "乾燥毛"] })).toBe(true);
+    // 単一値(文字列)は従来どおり厳密一致
+    expect(evalRuleString('g=="female"', { ...T, g: "female" })).toBe(true);
+  });
+
+  it("複数値フィールド: in は集合の交差", () => {
+    expect(evalRuleString('skinType in ["敏感肌","脂性"]', { ...T, skinType: ["乾燥", "敏感肌"] })).toBe(true);
+    expect(evalRuleString('skinType in ["敏感肌","脂性"]', { ...T, skinType: ["乾燥", "普通"] })).toBe(false);
+  });
+
   it("all 110 catalog rules parse without error", () => {
     for (const item of catalog.items) {
       expect(() => parseRule(item.triggerRule), item.id).not.toThrow();
