@@ -147,6 +147,50 @@ function MenuRow({
   );
 }
 
+// ── 新メニュー追加フォーム（ボタンから開く・追加成功で自動クローズ）──
+function MenuAddForm({ categories, setAdding }: { categories: Cat[]; setAdding: (v: boolean) => void }) {
+  const [state, action, pending] = useActionState<WizState, FormData>(addServiceAction, {});
+  useEffect(() => {
+    if (state.ok) setAdding(false);
+  }, [state.ok, setAdding]);
+
+  return (
+    <form action={action} className="grid grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4">
+      <label className="col-span-2 flex flex-col gap-1 text-xs text-zinc-600">
+        メニュー名 *<input name="name" required className={input} />
+      </label>
+      <label className="col-span-2 flex flex-col gap-1 text-xs text-zinc-600">
+        区分
+        <select name="category" defaultValue="" className={input}>
+          <option value="">（未選択）</option>
+          {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+        </select>
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        価格（税込・円）*<input name="price" type="number" min={0} required defaultValue={5000} className={input} />
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        会員価格（税込・円）<input name="memberPrice" type="number" min={0} className={input} />
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        所要(分)<input name="durationMin" type="number" min={0} className={input} />
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-zinc-600">
+        推奨周期(日)<input name="defaultCycleDays" type="number" min={0} className={input} />
+      </label>
+      <div className="col-span-2 flex items-center gap-3">
+        <button disabled={pending} className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
+          {pending ? "追加中…" : "追加"}
+        </button>
+        <button type="button" onClick={() => setAdding(false)} className="text-xs text-zinc-500 hover:text-zinc-800">
+          キャンセル
+        </button>
+      </div>
+      {state.error ? <p className="col-span-2 text-xs text-red-600">{state.error}</p> : null}
+    </form>
+  );
+}
+
 export function MenusStep({
   services,
   categories,
@@ -158,8 +202,8 @@ export function MenusStep({
 }) {
   const [tab, setTab] = useState<"categories" | "menus">("categories");
   const [openMenuId, setOpenMenuId] = useState<string | null>(null); // アコーディオン：1つだけ開く
+  const [addingMenu, setAddingMenu] = useState(false); // 新メニュー追加フォームの開閉
   const [addCat, addCatAction, addCatPending] = useActionState<WizState, FormData>(addCategoryAction, {});
-  const [addSvc, addSvcAction, addSvcPending] = useActionState<WizState, FormData>(addServiceAction, {});
   const [nextState, nextAction, nextPending] = useActionState<WizState, FormData>(advanceMenusAction, {});
 
   const tabCls = (active: boolean) =>
@@ -206,34 +250,17 @@ export function MenusStep({
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-zinc-500">提供するメニューを登録します（1つ以上必要）。金額は税込で入力してください。</p>
-          <form action={addSvcAction} className="grid grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4">
-            <label className="col-span-2 flex flex-col gap-1 text-xs text-zinc-600">
-              メニュー名 *<input name="name" required className={input} />
-            </label>
-            <label className="col-span-2 flex flex-col gap-1 text-xs text-zinc-600">
-              区分
-              <select name="category" defaultValue="" className={input}>
-                <option value="">（未選択）</option>
-                {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-zinc-600">
-              価格（税込・円）*<input name="price" type="number" min={0} required defaultValue={5000} className={input} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-zinc-600">
-              会員価格（税込・円）<input name="memberPrice" type="number" min={0} className={input} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-zinc-600">
-              所要(分)<input name="durationMin" type="number" min={0} className={input} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-zinc-600">
-              推奨周期(日)<input name="defaultCycleDays" type="number" min={0} className={input} />
-            </label>
-            <button disabled={addSvcPending} className="col-span-2 rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
-              {addSvcPending ? "追加中…" : "追加"}
+          {addingMenu ? (
+            <MenuAddForm categories={categories} setAdding={setAddingMenu} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingMenu(true)}
+              className="w-full rounded-md border border-dashed border-zinc-300 bg-white px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              ＋ 新メニュー追加
             </button>
-            {addSvc.error ? <p className="col-span-2 text-xs text-red-600">{addSvc.error}</p> : null}
-          </form>
+          )}
 
           <div className="rounded-lg border border-zinc-200 bg-white p-3">
             <p className="mb-1 text-xs font-medium text-zinc-500">登録済みメニュー（{services.length}件）</p>
