@@ -15,6 +15,7 @@ const NAV = [
   { href: "/reservations", label: "予約・来店サイクル", enabled: true },
   { href: "/suggestions", label: "再来店提案", enabled: true },
   { href: "/data", label: "データ入出力", enabled: true },
+  { href: "/menus", label: "メニュー管理", enabled: true },
   { href: "/settings", label: "設定", enabled: true },
 ];
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { listCustomers } from "@/lib/customers";
 import { deriveStatus, daysSince } from "@/lib/customer-status";
 import { StatusBadge } from "@/components/StatusBadge";
-import { formatDate, formatYen } from "@/lib/format";
+import { formatDate, formatDateTime, formatYen } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +37,21 @@ const SORT_VALUES = SORT_OPTIONS.map((o) => o.v);
 
 const field = "rounded-md border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-zinc-500";
 
+// 状態フィルタはバッジ(tone)で判定。
+const STATUS_OPTIONS = [
+  { v: "active", l: "アクティブ" },
+  { v: "follow", l: "要フォロー" },
+  { v: "new", l: "新規" },
+  { v: "dormant", l: "休眠" },
+  { v: "unknown", l: "未来店" },
+];
+const STATUS_VALUES = STATUS_OPTIONS.map((o) => o.v);
+
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
+  const now = new Date();
 
-  const status =
-    sp.status === "new" || sp.status === "repeat" || sp.status === "dormant" ? sp.status : undefined;
+  const status = STATUS_VALUES.includes(sp.status ?? "") ? (sp.status as string) : undefined;
   const sort = SORT_VALUES.includes(sp.sort ?? "") ? (sp.sort as string) : "last_desc";
   const num = (v?: string) => {
     const n = Number(v);
@@ -128,9 +138,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               状態
               <select name="status" defaultValue={status ?? ""} className={field}>
                 <option value="">すべて</option>
-                <option value="new">新規</option>
-                <option value="repeat">リピート</option>
-                <option value="dormant">休眠</option>
+                {STATUS_OPTIONS.map((o) => (
+                  <option key={o.v} value={o.v}>{o.l}</option>
+                ))}
               </select>
             </label>
             <label className="flex flex-col gap-1 text-xs text-zinc-500">
@@ -182,7 +192,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         300%超=休眠（来店1回以下=新規）。
       </p>
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-        <table className="w-full min-w-[900px] text-sm">
+        <table className="w-full min-w-[1100px] text-sm">
           <thead className="bg-zinc-50 text-left text-xs text-zinc-500">
             <tr>
               <th className="whitespace-nowrap px-4 py-3 font-medium">氏名</th>
@@ -191,6 +201,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
               <th className="whitespace-nowrap px-4 py-3 font-medium">サイクル経過率</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">来店回数</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">最終来店</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">次回予約日時</th>
+              <th className="whitespace-nowrap px-4 py-3 font-medium">次回予約推奨日時</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">累計売上</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">平均売上単価</th>
               <th className="whitespace-nowrap px-4 py-3 font-medium">連絡同意</th>
@@ -199,7 +211,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <tbody className="divide-y divide-zinc-100">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-zinc-400">該当する顧客がいません。</td>
+                <td colSpan={11} className="px-4 py-10 text-center text-zinc-400">該当する顧客がいません。</td>
               </tr>
             ) : (
               rows.map((c) => {
@@ -231,6 +243,20 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{c.visitCount} 回</td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{formatDate(c.lastVisitDate)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
+                      {c.nextReservation ? formatDateTime(c.nextReservation) : <span className="text-zinc-400">次回予約なし</span>}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
+                      {c.nextReservation ? (
+                        <span className="text-zinc-300">—</span>
+                      ) : c.nextPredictedVisitDate && c.nextPredictedVisitDate >= now ? (
+                        formatDate(c.nextPredictedVisitDate)
+                      ) : c.nextPredictedVisitDate ? (
+                        <span className="text-amber-600">早めの来店を推奨</span>
+                      ) : (
+                        <span className="text-zinc-300">—</span>
+                      )}
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">{formatYen(c.totalSales)}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-zinc-600">
                       {c.visitCount > 0 ? formatYen(c.avgSpend) : "—"}

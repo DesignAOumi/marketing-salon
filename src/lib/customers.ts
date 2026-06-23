@@ -7,7 +7,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { encrypt, decrypt } from "@/lib/crypto";
-import { computePersistentStatus } from "@/lib/customer-status";
+import { computePersistentStatus, deriveStatus } from "@/lib/customer-status";
 import { computeCycle } from "@/lib/cycle";
 import type { CustomerInput } from "@/lib/validation";
 
@@ -41,7 +41,7 @@ function parseAllergies(v: string | null): string[] {
 
 export type CustomerListParams = {
   q?: string;
-  status?: "new" | "repeat" | "dormant";
+  status?: string; // バッジのtone: active / follow / new / dormant / unknown
   sort?: string;
   visitMin?: number;
   visitMax?: number;
@@ -59,14 +59,14 @@ export type CustomerListParams = {
 export async function listCustomers(params: CustomerListParams = {}) {
   const page = Math.max(1, params.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
+  const now = new Date();
 
-  // DB で絞れる条件（状態・検索・来店回数・最終来店・累計売上・連絡同意）。
+  // DB で絞れる条件（検索・来店回数・最終来店・累計売上・連絡同意）。状態は派生のため in-memory。
   const where: Prisma.CustomerWhereInput = { deletedAt: null };
   if (params.q && params.q.trim()) {
     const q = params.q.trim();
     where.OR = [{ name: { contains: q } }, { nameKana: { contains: q } }];
   }
-  if (params.status) where.status = params.status;
   if (params.consent === "yes") where.consentToContact = true;
   else if (params.consent === "no") where.consentToContact = false;
   if (params.visitMin != null || params.visitMax != null) {
@@ -88,26 +88,42 @@ export async function listCustomers(params: CustomerListParams = {}) {
     };
   }
 
-  // 平均売上単価は計算列のため、絞り込み後の全件を取得して in-memory で評価/整列/分頁する。
-  const all = await prisma.customer.findMany({
-    where,
-    select: {
-      id: true,
-      name: true,
-      nameKana: true,
-      status: true,
-      visitCount: true,
-      lastVisitDate: true,
-      avgVisitIntervalDays: true,
-      totalSales: true,
-      consentToContact: true,
-    },
-  });
+  // 平均売上単価・派生状態は計算のため、絞り込み後の全件を取得して in-memory で評価/整列/分頁する。
+  const [all, upcoming] = await Promise.all([
+    prisma.customer.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        nameKana: true,
+        status: true,
+        visitCount: true,
+        lastVisitDate: true,
+        avgVisitIntervalDays: true,
+        nextPredictedVisitDate: true,
+        totalSales: true,
+        consentToContact: true,
+      },
+    }),
+    prisma.reservation.findMany({
+      where: { status: "booked", startAt: { gte: now } },
+      orderBy: { startAt: "asc" },
+      select: { customerId: true, startAt: true },
+    }),
+  ]);
+  // 顧客ごとの直近の今後予約（最早）。
+  const nextResMap = new Map<string, Date>();
+  for (const r of upcoming) if (!nextResMap.has(r.customerId)) nextResMap.set(r.customerId, r.startAt);
 
   let list = all.map((c) => ({
     ...c,
     avgSpend: c.visitCount > 0 ? Math.round(c.totalSales / c.visitCount) : 0,
+    nextReservation: nextResMap.get(c.id) ?? null,
   }));
+  // 状態（バッジ）で絞り込み。params.status = tone（active/follow/new/dormant/unknown）。
+  if (params.status) {
+    list = list.filter((c) => deriveStatus(c, now).tone === params.status);
+  }
   if (params.avgMin != null) list = list.filter((c) => c.avgSpend >= params.avgMin!);
   if (params.avgMax != null) list = list.filter((c) => c.avgSpend <= params.avgMax!);
 

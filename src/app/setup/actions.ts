@@ -70,6 +70,7 @@ export async function importSampleAction(): Promise<void> {
   await requireSetupSession();
   await importSampleCustomers(100);
   revalidatePath("/setup");
+  revalidatePath("/menus");
 }
 
 export async function advanceCustomersAction(): Promise<void> {
@@ -94,6 +95,7 @@ export async function addServiceAction(_prev: WizState, formData: FormData): Pro
     defaultCycleDays: Number(formData.get("defaultCycleDays")) || null,
   });
   revalidatePath("/setup");
+  revalidatePath("/menus");
   return { ok: "メニューを追加しました。" };
 }
 
@@ -114,6 +116,7 @@ export async function updateServiceAction(_prev: WizState, formData: FormData): 
     defaultCycleDays: Number(formData.get("defaultCycleDays")) || null,
   });
   revalidatePath("/setup");
+  revalidatePath("/menus");
   return { ok: "保存しました。" };
 }
 
@@ -122,6 +125,7 @@ export async function deleteServiceAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (id) await deleteService(id);
   revalidatePath("/setup");
+  revalidatePath("/menus");
 }
 
 // ── 区分（Category）マスタ ────────────────────────────────
@@ -131,6 +135,7 @@ export async function addCategoryAction(_prev: WizState, formData: FormData): Pr
   if (!name) return { error: "区分名は必須です。" };
   await createCategory(name);
   revalidatePath("/setup");
+  revalidatePath("/menus");
   return { ok: "区分を追加しました。" };
 }
 
@@ -142,6 +147,7 @@ export async function updateCategoryAction(_prev: WizState, formData: FormData):
   if (!name) return { error: "区分名は必須です。" };
   await updateCategory(id, name);
   revalidatePath("/setup");
+  revalidatePath("/menus");
   return { ok: "保存しました。" };
 }
 
@@ -150,6 +156,7 @@ export async function deleteCategoryAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   if (id) await deleteCategory(id);
   revalidatePath("/setup");
+  revalidatePath("/menus");
 }
 
 // メニュー登録 → 確認ステップへ。

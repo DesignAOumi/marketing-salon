@@ -120,7 +120,15 @@ function MenuRow({ s, categories }: { s: Svc; categories: Cat[] }) {
   );
 }
 
-export function MenusStep({ services, categories }: { services: Svc[]; categories: Cat[] }) {
+export function MenusStep({
+  services,
+  categories,
+  standalone = false,
+}: {
+  services: Svc[];
+  categories: Cat[];
+  standalone?: boolean;
+}) {
   const [tab, setTab] = useState<"categories" | "menus">("categories");
   const [addCat, addCatAction, addCatPending] = useActionState<WizState, FormData>(addCategoryAction, {});
   const [addSvc, addSvcAction, addSvcPending] = useActionState<WizState, FormData>(addServiceAction, {});
@@ -212,15 +220,17 @@ export function MenusStep({ services, categories }: { services: Svc[]; categorie
         </div>
       )}
 
-      <form action={nextAction}>
-        <button
-          disabled={nextPending || services.length < 1}
-          className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-        >
-          次へ（確認画面）
-        </button>
-        {nextState.error ? <p role="alert" className="mt-2 text-sm text-red-600">{nextState.error}</p> : null}
-      </form>
+      {!standalone ? (
+        <form action={nextAction}>
+          <button
+            disabled={nextPending || services.length < 1}
+            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+          >
+            次へ（確認画面）
+          </button>
+          {nextState.error ? <p role="alert" className="mt-2 text-sm text-red-600">{nextState.error}</p> : null}
+        </form>
+      ) : null}
     </div>
   );
 }
