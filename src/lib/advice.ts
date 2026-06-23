@@ -185,6 +185,8 @@ export async function buildAllContexts(now: Date = new Date()): Promise<Map<stri
       preferredStaff: c.preferredStaffId,
       reviewGiven: c.reviewGiven,
       referralCount: c.referralCount,
+      preferences: c.preferences ?? null, // 嗜好（自由記述）
+      notes: c.notes ?? null, // 顧客カルテのメモ（連携AIの提案に活用）
       lastService: lastServiceMap.get(c.id) ?? null,
       daysToBirthday: daysToNextAnnual(c.birthday, now),
       daysToAnniversary: daysToNextAnnual(c.anniversaryDate ?? c.firstVisitDate, now),

@@ -113,7 +113,7 @@ export function AppShell({
             type="button"
             onClick={() => setOpen(true)}
             aria-label="メニューを開く"
-            className="rounded-md border border-zinc-300 px-2.5 py-1.5 text-zinc-700 hover:bg-zinc-100"
+            className="rounded-md border border-zinc-500 bg-white px-2.5 py-1.5 text-zinc-800 shadow-sm hover:bg-zinc-100"
           >
             ☰
           </button>

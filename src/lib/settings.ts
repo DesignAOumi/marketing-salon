@@ -21,10 +21,16 @@ export const SHAREABLE_FIELDS = [
   { key: "hairType", label: "髪質", pii: true },
   { key: "skinType", label: "肌質", pii: true },
   { key: "preferences", label: "嗜好（自由記述）", pii: true },
+  { key: "notes", label: "メモ（カルテ自由記述）", pii: true },
   { key: "allergies", label: "アレルギー", pii: true },
 ] as const;
 
-export const DEFAULT_SHARED_FIELDS = SHAREABLE_FIELDS.filter((f) => !f.pii).map((f) => f.key);
+// 連携あり時の既定送信フィールド。メモ・嗜好は提案最適化のため既定で含める（プライバシー設定で変更可）。
+export const DEFAULT_SHARED_FIELDS = [
+  ...SHAREABLE_FIELDS.filter((f) => !f.pii).map((f) => f.key),
+  "preferences",
+  "notes",
+];
 
 export async function getSettings() {
   const existing = await prisma.settings.findUnique({ where: { id: "singleton" } });

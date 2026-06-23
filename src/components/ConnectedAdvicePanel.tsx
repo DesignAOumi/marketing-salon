@@ -25,6 +25,7 @@ export function ConnectedAdvicePanel({
           </button>
         </form>
       </div>
+      <p className="mt-1 text-xs text-zinc-500">カルテの「メモ・嗜好」を踏まえてパーソナライズします（送信フィールドで制御可）。</p>
 
       {state.error ? (
         <p role="alert" className="mt-2 text-xs text-amber-700">{state.error}</p>

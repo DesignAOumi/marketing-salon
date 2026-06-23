@@ -18,6 +18,7 @@ const SYSTEM_PROMPT = `あなたは日本の美容サロンの運営を支援す
 - 医療的な断定、過度な販売圧、誇大表現を避ける。
 - 顧客の宛名は提供された name の値をそのまま使う（値が {{NAME}} の場合は出力にも {{NAME}} と記載する）。
 - customerMessage は敬体・自然な日本語で、そのまま送れる完成度にする。
+- 顧客データに notes（カルテのメモ）や preferences（嗜好）が含まれる場合は、その内容を踏まえて連絡文をパーソナライズする（メモにある好み・事情・要望を自然に反映。無い場合は触れない）。
 
 # 文体・装飾ルール（LINE向け・スタイルガイド準拠 DesignAOumi/sns-message-style-guide）
 ${STYLE_GUIDE_RULES}

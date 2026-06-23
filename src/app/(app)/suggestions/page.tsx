@@ -25,7 +25,7 @@ export default async function SuggestionsPage() {
         <h1 className="text-2xl font-bold text-zinc-900">再来店サイクル提案</h1>
         <p className="mt-1 text-sm text-zinc-500">
           来店周期が近い／超過、かつ先の予約がなく、連絡同意のある顧客 {targets.length} 名。
-          {aiActive ? "Claude（連携あり）で生成。" : "外部送信ゼロ（オフライン）で生成。"}
+          {aiActive ? "Claude（連携あり）で生成。カルテのメモ・嗜好も踏まえます。" : "外部送信ゼロ（オフライン）で生成。"}
         </p>
 
         {/* AI連携の状態表示 + ON/OFF */}
