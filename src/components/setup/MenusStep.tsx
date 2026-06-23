@@ -23,7 +23,7 @@ type Svc = {
 };
 type Cat = { id: string; name: string };
 
-const input = "rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm outline-none focus:border-zinc-500";
+const input = "rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm outline-none focus:border-zinc-500";
 
 // ── 区分1件（インライン編集 + 削除）──────────────────────────
 function CategoryRow({ c }: { c: Cat }) {
@@ -76,7 +76,7 @@ function MenuRow({ s, categories }: { s: Svc; categories: Cat[] }) {
   }
 
   return (
-    <li className="rounded-lg border border-zinc-200 p-3">
+    <li className="rounded-lg border border-zinc-200 bg-white p-3">
       <form action={action} className="grid grid-cols-2 gap-2 sm:grid-cols-2">
         <input type="hidden" name="id" value={s.id} />
         <label className="col-span-2 flex flex-col gap-1 text-[11px] text-zinc-500">
@@ -154,7 +154,7 @@ export function MenusStep({
           <p className="text-sm text-zinc-500">
             メニューの区分を登録します。ここで追加した区分は、すぐにメニュー登録の「区分」で選べます。
           </p>
-          <form action={addCatAction} className="flex items-end gap-2 rounded-lg border border-zinc-200 p-4">
+          <form action={addCatAction} className="flex items-end gap-2 rounded-lg border border-zinc-200 bg-white p-4">
             <label className="flex flex-1 flex-col gap-1 text-xs text-zinc-600">
               区分名 *<input name="name" required placeholder="例: 施術 / 物販 / 会費" className={input} />
             </label>
@@ -164,7 +164,7 @@ export function MenusStep({
           </form>
           {addCat.error ? <p className="text-xs text-red-600">{addCat.error}</p> : null}
 
-          <div className="rounded-lg border border-zinc-200 p-3">
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
             <p className="mb-1 text-xs font-medium text-zinc-500">登録済み区分（{categories.length}件）</p>
             {categories.length === 0 ? (
               <p className="text-sm text-zinc-400">まだありません。</p>
@@ -178,7 +178,7 @@ export function MenusStep({
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-zinc-500">提供するメニューを登録します（1つ以上必要）。金額は税込で入力してください。</p>
-          <form action={addSvcAction} className="grid grid-cols-2 gap-3 rounded-lg border border-zinc-200 p-4">
+          <form action={addSvcAction} className="grid grid-cols-2 gap-3 rounded-lg border border-zinc-200 bg-white p-4">
             <label className="col-span-2 flex flex-col gap-1 text-xs text-zinc-600">
               メニュー名 *<input name="name" required className={input} />
             </label>
@@ -207,7 +207,7 @@ export function MenusStep({
             {addSvc.error ? <p className="col-span-2 text-xs text-red-600">{addSvc.error}</p> : null}
           </form>
 
-          <div className="rounded-lg border border-zinc-200 p-3">
+          <div className="rounded-lg border border-zinc-200 bg-white p-3">
             <p className="mb-1 text-xs font-medium text-zinc-500">登録済みメニュー（{services.length}件）</p>
             {services.length === 0 ? (
               <p className="text-sm text-zinc-400">まだありません。</p>
