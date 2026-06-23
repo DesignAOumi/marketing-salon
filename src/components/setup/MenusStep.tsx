@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import {
   addServiceAction,
   updateServiceAction,
@@ -49,35 +49,28 @@ function CategoryRow({ c }: { c: Cat }) {
   );
 }
 
-// ── メニュー1件（リスト表示・金額が編集ボタン → 展開編集）──────
-function MenuRow({ s, categories }: { s: Svc; categories: Cat[] }) {
-  const [editing, setEditing] = useState(false);
+// ── メニュー編集フォーム（開いたときだけマウント＝保存後の自動クローズが安定）──
+function MenuEditForm({
+  s,
+  categories,
+  setOpenId,
+}: {
+  s: Svc;
+  categories: Cat[];
+  setOpenId: (id: string | null) => void;
+}) {
   const [state, action, pending] = useActionState<WizState, FormData>(updateServiceAction, {});
+  // 保存成功で自動的に詳細を閉じる。
+  useEffect(() => {
+    if (state.ok) setOpenId(null);
+  }, [state.ok, setOpenId]);
 
   const catOptions = categories.map((c) => c.name);
   if (s.category && !catOptions.includes(s.category)) catOptions.unshift(s.category);
 
-  if (!editing) {
-    return (
-      <li className="flex items-center justify-between gap-3 border-b border-zinc-100 px-1 py-2.5 last:border-0">
-        <span className="min-w-0 text-sm text-zinc-800">
-          {s.name}
-          {s.category ? <span className="ml-1.5 text-xs text-zinc-400">（{s.category}）</span> : null}
-        </span>
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="shrink-0 rounded border border-blue-200 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
-        >
-          ✎ 編集
-        </button>
-      </li>
-    );
-  }
-
   return (
-    <li className="rounded-lg border border-zinc-200 bg-white p-3">
-      <form action={action} className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+    <div className="mt-2 rounded-lg border border-zinc-200 bg-white p-3">
+      <form action={action} className="grid grid-cols-2 gap-2">
         <input type="hidden" name="id" value={s.id} />
         <label className="col-span-2 flex flex-col gap-1 text-[11px] text-zinc-500">
           メニュー名<input name="name" defaultValue={s.name} className={input} />
@@ -105,10 +98,9 @@ function MenuRow({ s, categories }: { s: Svc; categories: Cat[] }) {
           <button disabled={pending} className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-700 disabled:opacity-60">
             {pending ? "保存中…" : "保存"}
           </button>
-          <button type="button" onClick={() => setEditing(false)} className="text-xs text-zinc-500 hover:text-zinc-800">
+          <button type="button" onClick={() => setOpenId(null)} className="text-xs text-zinc-500 hover:text-zinc-800">
             閉じる
           </button>
-          {state.ok ? <span className="text-xs text-emerald-600">{state.ok}</span> : null}
           {state.error ? <span className="text-xs text-red-600">{state.error}</span> : null}
         </div>
       </form>
@@ -116,6 +108,41 @@ function MenuRow({ s, categories }: { s: Svc; categories: Cat[] }) {
         <input type="hidden" name="id" value={s.id} />
         <button className="text-xs text-red-600 hover:underline">削除</button>
       </form>
+    </div>
+  );
+}
+
+// ── メニュー1件（アコーディオン：一度に1つだけ展開）──────────
+function MenuRow({
+  s,
+  categories,
+  openId,
+  setOpenId,
+}: {
+  s: Svc;
+  categories: Cat[];
+  openId: string | null;
+  setOpenId: (id: string | null) => void;
+}) {
+  const isOpen = openId === s.id;
+  return (
+    <li className="border-b border-zinc-100 px-1 py-2.5 last:border-0">
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 text-sm text-zinc-800">
+          {s.name}
+          {s.category ? <span className="ml-1.5 text-xs text-zinc-400">（{s.category}）</span> : null}
+        </span>
+        <button
+          type="button"
+          onClick={() => setOpenId(isOpen ? null : s.id)}
+          className={`shrink-0 rounded border px-2 py-1 text-xs ${
+            isOpen ? "border-zinc-300 bg-zinc-100 text-zinc-700" : "border-blue-200 text-blue-600 hover:bg-blue-50"
+          }`}
+        >
+          {isOpen ? "閉じる" : "✎ 編集"}
+        </button>
+      </div>
+      {isOpen ? <MenuEditForm s={s} categories={categories} setOpenId={setOpenId} /> : null}
     </li>
   );
 }
@@ -130,6 +157,7 @@ export function MenusStep({
   standalone?: boolean;
 }) {
   const [tab, setTab] = useState<"categories" | "menus">("categories");
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null); // アコーディオン：1つだけ開く
   const [addCat, addCatAction, addCatPending] = useActionState<WizState, FormData>(addCategoryAction, {});
   const [addSvc, addSvcAction, addSvcPending] = useActionState<WizState, FormData>(addServiceAction, {});
   const [nextState, nextAction, nextPending] = useActionState<WizState, FormData>(advanceMenusAction, {});
@@ -213,7 +241,9 @@ export function MenusStep({
               <p className="text-sm text-zinc-400">まだありません。</p>
             ) : (
               <ul className="max-h-[20rem] overflow-y-auto overscroll-contain pr-1">
-                {services.map((s) => <MenuRow key={s.id} s={s} categories={categories} />)}
+                {services.map((s) => (
+                  <MenuRow key={s.id} s={s} categories={categories} openId={openMenuId} setOpenId={setOpenMenuId} />
+                ))}
               </ul>
             )}
           </div>
